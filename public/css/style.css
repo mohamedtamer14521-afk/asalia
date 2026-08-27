@@ -1035,6 +1035,80 @@ body::after {
 }
 
 /* ==========================================================================
+   APPLE CUSTOM SERVICE PICKER WITH IMAGES
+   ========================================================================== */
+.apple-custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.apple-custom-select-trigger {
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 16px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s var(--spring);
+  user-select: none;
+}
+
+.apple-custom-select-trigger:hover {
+  border-color: rgba(0, 113, 227, 0.4);
+  background: var(--bg-surface-hover);
+}
+
+.apple-custom-select-trigger.active {
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+}
+
+.apple-custom-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  z-index: 1000;
+  padding: 6px;
+  animation: modalScaleUp 0.18s ease;
+}
+
+.apple-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.apple-select-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.apple-select-item.selected {
+  background: rgba(0, 113, 227, 0.14);
+  border-left: 3px solid var(--apple-blue);
+}
+
+[dir="rtl"] .apple-select-item.selected {
+  border-left: none;
+  border-right: 3px solid var(--apple-blue);
+}
+
+/* ==========================================================================
    BENTO STATS WIDGETS (iOS Dashboard Cards)
    ========================================================================== */
 

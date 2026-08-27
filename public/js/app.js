@@ -284,6 +284,50 @@ function populateCategoriesSelect() {
     `).join('');
 }
 
+function getPlatformEmoji(platform) {
+  const p = (platform || '').toLowerCase();
+  if (p.includes('insta')) return '📷';
+  if (p.includes('tik')) return '🎵';
+  if (p.includes('you')) return '▶️';
+  if (p.includes('face')) return '🔵';
+  if (p.includes('tele')) return '✈️';
+  if (p.includes('twit') || p === 'x') return '𝕏';
+  if (p.includes('what')) return '💬';
+  if (p.includes('snap')) return '👻';
+  if (p.includes('link')) return '💼';
+  return '🌟';
+}
+
+function toggleServiceDropdown(forceClose) {
+  const menu = document.getElementById('custom-service-menu');
+  const trigger = document.getElementById('custom-service-trigger');
+  if (!menu || !trigger) return;
+
+  if (forceClose === true || menu.style.display === 'block') {
+    menu.style.display = 'none';
+    trigger.classList.remove('active');
+  } else {
+    menu.style.display = 'block';
+    trigger.classList.add('active');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const picker = document.getElementById('custom-service-picker');
+  if (picker && !picker.contains(e.target)) {
+    toggleServiceDropdown(true);
+  }
+});
+
+function selectCustomService(serviceId) {
+  const servSelect = document.getElementById('order-service-select');
+  if (servSelect) {
+    servSelect.value = serviceId;
+  }
+  toggleServiceDropdown(true);
+  onServiceChanged();
+}
+
 function onCategoryChanged() {
   const catSelect = document.getElementById('order-category-select');
   const catId = catSelect ? catSelect.value : '';
@@ -318,15 +362,44 @@ function onCategoryChanged() {
     });
   }
 
+  // Native select options with emojis
   servSelect.innerHTML = `<option value="">-- ${isAr ? 'اختر الخدمة' : 'Select Service'} (${filtered.length}) --</option>` +
     filtered.map(s => `
-      <option value="${s.id}">#${s.id} - ${isAr ? s.name_ar : s.name_en} — ${Number(s.price_per_1000).toFixed(2)} EGP / 1000</option>
+      <option value="${s.id}">${getPlatformEmoji(s.platform)} #${s.id} - ${isAr ? s.name_ar : s.name_en} — ${Number(s.price_per_1000).toFixed(2)} EGP / 1000</option>
     `).join('');
+
+  // Custom Apple Dropdown with Images
+  const customMenu = document.getElementById('custom-service-menu');
+  if (customMenu) {
+    if (filtered.length === 0) {
+      customMenu.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">${isAr ? 'لا توجد خدمات مطابقة' : 'No services found'}</div>`;
+    } else {
+      customMenu.innerHTML = filtered.map(s => `
+        <div class="apple-select-item ${selectedService?.id === s.id ? 'selected' : ''}" onclick="selectCustomService(${s.id})">
+          <div style="width: 36px; height: 36px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); flex-shrink: 0;">
+            ${s.image_url ? `<img src="${s.image_url}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 1.15rem;">${getPlatformEmoji(s.platform)}</span>`}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 0.92rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+              #${s.id} - ${isAr ? s.name_ar : s.name_en}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--apple-blue); font-weight: 700;">
+              ${Number(s.price_per_1000).toFixed(2)} EGP / 1000
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
 
   if (filtered.length === 1 && (catId || currentSearchQuery)) {
     servSelect.value = filtered[0].id;
     onServiceChanged();
   } else {
+    const iconContainer = document.getElementById('picker-selected-icon');
+    const textContainer = document.getElementById('picker-selected-text');
+    if (iconContainer) iconContainer.innerHTML = '<span>🌟</span>';
+    if (textContainer) textContainer.textContent = isAr ? '-- اختر الخدمة --' : '-- Select Service --';
     document.getElementById('service-info-box').style.display = 'none';
     selectedService = null;
     calculateOrderPrice();
@@ -338,30 +411,58 @@ function onServiceChanged() {
   selectedService = currentServices.find(s => s.id == servId) || null;
 
   const infoBox = document.getElementById('service-info-box');
+  const isAr = window.i18n.lang === 'ar';
+  const iconContainer = document.getElementById('picker-selected-icon');
+  const textContainer = document.getElementById('picker-selected-text');
+
   if (!selectedService) {
-    infoBox.style.display = 'none';
+    if (infoBox) infoBox.style.display = 'none';
+    if (iconContainer) iconContainer.innerHTML = '<span>🌟</span>';
+    if (textContainer) textContainer.textContent = isAr ? '-- اختر الخدمة --' : '-- Select Service --';
     calculateOrderPrice();
     return;
   }
 
-  const isAr = window.i18n.lang === 'ar';
-  infoBox.style.display = 'block';
-  document.getElementById('service-info-price').textContent = 
-    `${isAr ? 'السعر' : 'Price'}: ${Number(selectedService.price_per_1000).toFixed(2)} EGP / 1000`;
-  document.getElementById('service-info-limits').textContent = 
-    `${isAr ? 'الحدود' : 'Limits'}: Min ${selectedService.min_quantity} — Max ${selectedService.max_quantity}`;
-  document.getElementById('service-info-desc').textContent = 
-    isAr ? (selectedService.description_ar || selectedService.description_en || '') : (selectedService.description_en || '');
-  document.getElementById('service-info-speed').textContent = 
-    `⚡ ${selectedService.processing_time_info || '0-24 Hours'}`;
-  document.getElementById('service-info-linktype').textContent = 
-    `🔗 ${selectedService.link_type}`;
+  // Update Trigger Button with actual image!
+  if (iconContainer) {
+    iconContainer.innerHTML = selectedService.image_url
+      ? `<img src="${selectedService.image_url}" style="width: 100%; height: 100%; object-fit: cover;">`
+      : `<span style="font-size: 1.15rem;">${getPlatformEmoji(selectedService.platform)}</span>`;
+  }
+  if (textContainer) {
+    textContainer.textContent = `#${selectedService.id} - ${isAr ? selectedService.name_ar : selectedService.name_en} — ${Number(selectedService.price_per_1000).toFixed(2)} EGP`;
+  }
+
+  // Update Info Box with image!
+  if (infoBox) {
+    infoBox.style.display = 'block';
+    const infoImgBox = document.getElementById('service-info-img-box');
+    if (infoImgBox) {
+      infoImgBox.innerHTML = selectedService.image_url
+        ? `<img src="${selectedService.image_url}" style="width: 100%; height: 100%; object-fit: cover;">`
+        : `<span style="font-size: 1.6rem;">${getPlatformEmoji(selectedService.platform)}</span>`;
+    }
+    document.getElementById('service-info-title').textContent = 
+      `#${selectedService.id} - ${isAr ? selectedService.name_ar : selectedService.name_en}`;
+    document.getElementById('service-info-price').textContent = 
+      `${isAr ? 'السعر' : 'Price'}: ${Number(selectedService.price_per_1000).toFixed(2)} EGP / 1000`;
+    document.getElementById('service-info-limits').textContent = 
+      `${isAr ? 'الحدود' : 'Limits'}: Min ${selectedService.min_quantity} — Max ${selectedService.max_quantity}`;
+    document.getElementById('service-info-desc').textContent = 
+      isAr ? (selectedService.description_ar || selectedService.description_en || '') : (selectedService.description_en || '');
+    document.getElementById('service-info-speed').textContent = 
+      `⚡ ${selectedService.processing_time_info || '0-24 Hours'}`;
+    document.getElementById('service-info-linktype').textContent = 
+      `🔗 ${selectedService.link_type}`;
+  }
 
   const qtyInput = document.getElementById('order-quantity');
-  qtyInput.min = selectedService.min_quantity;
-  qtyInput.max = selectedService.max_quantity;
-  if (!qtyInput.value || Number(qtyInput.value) < selectedService.min_quantity) {
-    qtyInput.value = selectedService.min_quantity;
+  if (qtyInput) {
+    qtyInput.min = selectedService.min_quantity;
+    qtyInput.max = selectedService.max_quantity;
+    if (!qtyInput.value || Number(qtyInput.value) < selectedService.min_quantity) {
+      qtyInput.value = selectedService.min_quantity;
+    }
   }
 
   calculateOrderPrice();

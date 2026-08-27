@@ -414,22 +414,45 @@
                 </select>
               </div>
 
-              <!-- Service Selector -->
+              <!-- Service Selector (Apple Rich Custom Picker with Images) -->
               <div class="form-group">
                 <label class="form-label" data-i18n="service">الخدمة</label>
-                <select id="order-service-select" class="form-select" onchange="onServiceChanged()" required>
+                <!-- Native hidden select for form validation & fallback -->
+                <select id="order-service-select" class="form-select" onchange="onServiceChanged()" required style="display: none;">
                   <option value="">-- اختر الخدمة --</option>
                 </select>
+
+                <!-- Custom Apple Dropdown with Images -->
+                <div class="apple-custom-select-wrapper" id="custom-service-picker">
+                  <div class="apple-custom-select-trigger" id="custom-service-trigger" onclick="toggleServiceDropdown()">
+                    <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                      <div id="picker-selected-icon" style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); flex-shrink: 0;">
+                        <span>🌟</span>
+                      </div>
+                      <span id="picker-selected-text" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-- اختر الخدمة --</span>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 8px;">▼</span>
+                  </div>
+                  <div class="apple-custom-select-menu" id="custom-service-menu" style="display: none;"></div>
+                </div>
               </div>
 
               <!-- Service Information Box -->
-              <div id="service-info-box" style="display: none; background: var(--bg-surface-elevated); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700;">
-                  <span id="service-info-price">السعر: --</span>
-                  <span id="service-info-limits">الحدود: --</span>
+              <div id="service-info-box" style="display: none; background: var(--bg-surface-elevated); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+                  <div id="service-info-img-box" style="width: 52px; height: 52px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); flex-shrink: 0;">
+                    <img id="service-info-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <h4 id="service-info-title" style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">اسم الخدمة</h4>
+                    <div style="display: flex; gap: 14px; font-size: 0.9rem; font-weight: 600; flex-wrap: wrap;">
+                      <span id="service-info-price" style="color: var(--apple-blue);">السعر: --</span>
+                      <span id="service-info-limits" style="color: var(--text-secondary);">الحدود: --</span>
+                    </div>
+                  </div>
                 </div>
-                <p id="service-info-desc" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px;"></p>
-                <div style="display: flex; gap: 8px;">
+                <p id="service-info-desc" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 10px;"></p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                   <span class="badge badge-completed" id="service-info-speed">⚡ سرعة التنفيذ: 0-24 ساعة</span>
                   <span class="badge badge-in-progress" id="service-info-linktype">الرابط: رابط مخصص</span>
                 </div>
