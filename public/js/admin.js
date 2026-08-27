@@ -213,16 +213,24 @@ async function loadAdminDeposits() {
         <td>${new Date(d.created_at).toLocaleString()}</td>
         <td>
           ${d.status === 'PENDING' ? `
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
               <button class="btn btn-success btn-sm" onclick="approveDeposit(${d.id}, ${d.amount})">
                 ✓ قبول وشحن
               </button>
               <button class="btn btn-danger btn-sm" onclick="rejectDeposit(${d.id})">
                 ✕ رفض
               </button>
+              <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4);" onclick="deleteAdminDeposit(${d.id})" title="حذف طلب الإيداع نهائياً">
+                🗑️ حذف
+              </button>
             </div>
           ` : `
-            <span style="color:var(--text-muted); font-size:0.85rem;">مكتمل (${d.status})</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="color:var(--text-muted); font-size:0.85rem;">مكتمل (${d.status})</span>
+              <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4); padding: 3px 8px; font-size: 0.8rem;" onclick="deleteAdminDeposit(${d.id})" title="حذف طلب الإيداع نهائياً">
+                🗑️ حذف
+              </button>
+            </div>
           `}
         </td>
       </tr>
@@ -268,6 +276,21 @@ async function rejectDeposit(depositId) {
     loadAdminDashboard();
   } catch (err) {
     showToast(err.message || 'Reject failed', 'error');
+  }
+}
+
+async function deleteAdminDeposit(depositId) {
+  if (!confirm(`هل أنت متأكد من حذف طلب الإيداع #${depositId} نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذا الإجراء.`)) {
+    return;
+  }
+
+  try {
+    const res = await window.api.delete(`/admin/deposits/${depositId}`);
+    showToast(res.message || 'تم حذف طلب الإيداع بنجاح!', 'success');
+    loadAdminDeposits();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف طلب الإيداع', 'error');
   }
 }
 

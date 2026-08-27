@@ -78,6 +78,12 @@ function updateUserUI() {
   const usernameElem = document.getElementById('topbar-username');
   if (usernameElem) usernameElem.textContent = currentUser.username;
 
+  const sidebarUsernameElem = document.getElementById('sidebar-username');
+  if (sidebarUsernameElem) sidebarUsernameElem.textContent = currentUser.username;
+
+  const sidebarLangBtn = document.getElementById('sidebar-lang-toggle');
+  if (sidebarLangBtn) sidebarLangBtn.textContent = window.i18n.lang === 'ar' ? 'English' : 'العربية';
+
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
     welcomeHeading.textContent = window.i18n.lang === 'ar' 
@@ -130,7 +136,10 @@ function switchTab(tabId) {
 
   // Close mobile sidebar if open
   const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
   if (sidebar) sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
 
   // Trigger tab-specific refresh
   if (tabId === 'dashboard') loadDashboardStats();
@@ -142,7 +151,15 @@ function switchTab(tabId) {
 
 function toggleSidebar() {
   const sidebar = document.getElementById('app-sidebar');
-  if (sidebar) sidebar.classList.toggle('open');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) {
+    const isOpen = sidebar.classList.toggle('open');
+    if (backdrop) {
+      if (isOpen) backdrop.classList.add('active');
+      else backdrop.classList.remove('active');
+    }
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  }
 }
 
 function toggleLanguage() {

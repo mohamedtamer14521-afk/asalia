@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>ASALIA | Admin Control Panel — لوحة الإدارة</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="/css/style.css">
@@ -101,6 +101,53 @@
       0% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.7; transform: scale(1.08); }
       100% { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 900px) {
+      .admin-layout {
+        flex-direction: column;
+      }
+      .admin-sidebar {
+        width: 100% !important;
+        height: auto !important;
+        position: static !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        padding: 12px 14px !important;
+      }
+      .admin-sidebar-header {
+        padding: 8px 6px 12px !important;
+      }
+      .admin-nav {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        padding: 6px 0 !important;
+        gap: 6px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .admin-nav::-webkit-scrollbar {
+        display: none;
+      }
+      .admin-nav-item {
+        flex-shrink: 0 !important;
+      }
+      .admin-nav-item a {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+        white-space: nowrap !important;
+      }
+      .admin-topbar {
+        height: auto !important;
+        min-height: 58px !important;
+        padding: 10px 14px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+      .admin-content {
+        padding: 16px 12px 40px !important;
+      }
     }
   </style>
 </head>

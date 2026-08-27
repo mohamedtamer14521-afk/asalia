@@ -210,6 +210,25 @@ router.post('/deposits/:id/reject', async (req, res) => {
   }
 });
 
+router.delete('/deposits/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await depositService.deleteDeposit(parseInt(id, 10), req.user.id);
+    return res.json({
+      success: true,
+      data: {
+        message: 'تم حذف طلب الإيداع بنجاح.',
+        ...result
+      }
+    });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      error: { code: err.code || 'DELETE_ERROR', message: err.message }
+    });
+  }
+});
+
 // Protected Screenshot Proof Stream
 router.get('/deposits/:id/proof', async (req, res) => {
   try {

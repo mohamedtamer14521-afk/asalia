@@ -2,14 +2,14 @@
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>قائمة الخدمات والأسعار | عسلية — ASALIA</title>
   <meta name="description" content="تصفح جميع خدمات عسلية للسوشيال ميديا: انستقرام، تيك توك، يوتيوب، فيسبوك، تليجرام وإكس مع الأسعار وسرعة التنفيذ.">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     .services-page-header {
       text-align: center;
-      padding: 50px 20px 30px;
+      padding: 40px 16px 24px;
     }
     .services-hero-badge {
       display: inline-flex;
@@ -56,7 +56,7 @@
       align-items: center;
       gap: 14px;
       flex: 1;
-      min-width: 260px;
+      min-width: 240px;
     }
     .service-thumb-box {
       width: 48px;
@@ -130,9 +130,49 @@
           <a href="/dashboard" class="btn btn-primary btn-sm">لوحة التحكم</a>
           <button class="btn btn-outline btn-sm" onclick="handleLogout()">خروج</button>
         </div>
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle Mobile Menu">☰</button>
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Backdrop & Drawer -->
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop" onclick="closeMobileNav()"></div>
+  <aside class="mobile-nav-drawer" id="mobile-nav-drawer">
+    <div class="mobile-nav-header">
+      <div class="logo">
+        <div class="logo-badge">A</div>
+        <span class="logo-text">عسلية</span>
+      </div>
+      <button class="btn-icon" onclick="closeMobileNav()" aria-label="Close Menu">&times;</button>
+    </div>
+    <ul class="mobile-nav-links">
+      <li>
+        <a href="/" class="mobile-nav-link" onclick="closeMobileNav()">
+          <span>🏠</span> <span>الرئيسية</span>
+        </a>
+      </li>
+      <li>
+        <a href="/services" class="mobile-nav-link active" onclick="closeMobileNav()">
+          <span>🌟</span> <span>الخدمات</span>
+        </a>
+      </li>
+    </ul>
+    <div class="mobile-nav-actions">
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 600; font-size: 0.9rem;">المظهر</span>
+        <button class="btn-icon" onclick="window.themeManager.toggle()" aria-label="Toggle Theme">☀️</button>
+      </div>
+      <div id="mobile-auth-unlogged" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-secondary" style="width: 100%;" onclick="closeMobileNav(); openModal('login-modal');">تسجيل الدخول</button>
+        <button class="btn btn-primary" style="width: 100%;" onclick="closeMobileNav(); openModal('register-modal');">حساب جديد</button>
+      </div>
+      <div id="mobile-auth-logged" style="display: none; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <a href="/dashboard" class="btn btn-primary" style="width: 100%;">لوحة التحكم</a>
+        <button class="btn btn-outline" style="width: 100%;" onclick="handleLogout()">خروج</button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Main Content -->
   <main class="container">
@@ -439,16 +479,39 @@
       }
     }
 
+    // Mobile Navigation Drawer Helpers
+    function toggleMobileNav() {
+      const drawer = document.getElementById('mobile-nav-drawer');
+      const backdrop = document.getElementById('mobile-nav-backdrop');
+      if (drawer) drawer.classList.toggle('active');
+      if (backdrop) backdrop.classList.toggle('active');
+      document.body.style.overflow = drawer && drawer.classList.contains('active') ? 'hidden' : '';
+    }
+    function closeMobileNav() {
+      const drawer = document.getElementById('mobile-nav-drawer');
+      const backdrop = document.getElementById('mobile-nav-backdrop');
+      if (drawer) drawer.classList.remove('active');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
     function checkAuthState() {
       const user = window.api.getUser();
       const unlogged = document.getElementById('auth-buttons-unlogged');
       const logged = document.getElementById('auth-buttons-logged');
+      const mobUnlogged = document.getElementById('mobile-auth-unlogged');
+      const mobLogged = document.getElementById('mobile-auth-logged');
+
       if (user) {
         if (unlogged) unlogged.style.display = 'none';
         if (logged) logged.style.display = 'flex';
+        if (mobUnlogged) mobUnlogged.style.display = 'none';
+        if (mobLogged) mobLogged.style.display = 'flex';
       } else {
         if (unlogged) unlogged.style.display = 'flex';
         if (logged) logged.style.display = 'none';
+        if (mobUnlogged) mobUnlogged.style.display = 'flex';
+        if (mobLogged) mobLogged.style.display = 'none';
       }
     }
 

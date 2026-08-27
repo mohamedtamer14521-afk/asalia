@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>ASALIA | أصالة — Production SMM Order & Fulfillment</title>
   <meta name="description" content="ASALIA — The premier manual SMM fulfillment platform. Safe, real manual execution, strict financial ledger, and WhatsApp-assisted support.">
   <link rel="stylesheet" href="/css/style.css">
@@ -35,9 +35,49 @@
           <a href="/dashboard" class="btn btn-primary btn-sm" data-i18n="nav_dashboard">لوحة التحكم</a>
           <button class="btn btn-outline btn-sm" onclick="handleLogout()" data-i18n="nav_logout">خروج</button>
         </div>
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle Mobile Menu">☰</button>
       </div>
     </div>
   </header>
+
+  <!-- Mobile Navigation Backdrop & Drawer -->
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop" onclick="closeMobileNav()"></div>
+  <aside class="mobile-nav-drawer" id="mobile-nav-drawer">
+    <div class="mobile-nav-header">
+      <div class="logo">
+        <div class="logo-badge">A</div>
+        <span class="logo-text" data-i18n="brand_name">عسلية</span>
+      </div>
+      <button class="btn-icon" onclick="closeMobileNav()" aria-label="Close Menu">&times;</button>
+    </div>
+    <ul class="mobile-nav-links">
+      <li>
+        <a href="/" class="mobile-nav-link active" onclick="closeMobileNav()">
+          <span>🏠</span> <span data-i18n="nav_home">الرئيسية</span>
+        </a>
+      </li>
+      <li>
+        <a href="/services" class="mobile-nav-link" onclick="closeMobileNav()">
+          <span>🌟</span> <span data-i18n="nav_services">الخدمات</span>
+        </a>
+      </li>
+    </ul>
+    <div class="mobile-nav-actions">
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+        <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="toggleLanguage()">English / العربية</button>
+        <button class="btn-icon" onclick="window.themeManager.toggle()" aria-label="Toggle Theme">☀️</button>
+      </div>
+      <div id="mobile-auth-unlogged" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-secondary" style="width: 100%;" onclick="closeMobileNav(); openModal('login-modal');" data-i18n="nav_login">تسجيل الدخول</button>
+        <button class="btn btn-primary" style="width: 100%;" onclick="closeMobileNav(); openModal('register-modal');" data-i18n="nav_register">حساب جديد</button>
+      </div>
+      <div id="mobile-auth-logged" style="display: none; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <a href="/dashboard" class="btn btn-primary" style="width: 100%;" data-i18n="nav_dashboard">لوحة التحكم</a>
+        <button class="btn btn-outline" style="width: 100%;" onclick="handleLogout()" data-i18n="nav_logout">خروج</button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Hero Section -->
   <main class="container">
@@ -178,6 +218,22 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script>
+    // Mobile Navigation Drawer Helpers
+    function toggleMobileNav() {
+      const drawer = document.getElementById('mobile-nav-drawer');
+      const backdrop = document.getElementById('mobile-nav-backdrop');
+      if (drawer) drawer.classList.toggle('active');
+      if (backdrop) backdrop.classList.toggle('active');
+      document.body.style.overflow = drawer && drawer.classList.contains('active') ? 'hidden' : '';
+    }
+    function closeMobileNav() {
+      const drawer = document.getElementById('mobile-nav-drawer');
+      const backdrop = document.getElementById('mobile-nav-backdrop');
+      if (drawer) drawer.classList.remove('active');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
     // Modal Helpers
     function openModal(id) {
       document.getElementById(id)?.classList.add('active');
@@ -203,17 +259,33 @@
         if (data && data.user) {
           document.getElementById('auth-buttons-unlogged').style.display = 'none';
           document.getElementById('auth-buttons-logged').style.display = 'flex';
+          const mobUnlogged = document.getElementById('mobile-auth-unlogged');
+          const mobLogged = document.getElementById('mobile-auth-logged');
+          if (mobUnlogged) mobUnlogged.style.display = 'none';
+          if (mobLogged) mobLogged.style.display = 'flex';
+
           if (data.user.role === 'ADMIN') {
             const adminBtn = document.createElement('a');
             adminBtn.href = '/admin';
             adminBtn.className = 'btn btn-secondary btn-sm';
             adminBtn.textContent = window.i18n.t('nav_admin_panel');
             document.getElementById('auth-buttons-logged').prepend(adminBtn);
+
+            const mobAdminBtn = document.createElement('a');
+            mobAdminBtn.href = '/admin';
+            mobAdminBtn.className = 'btn btn-secondary';
+            mobAdminBtn.style.width = '100%';
+            mobAdminBtn.textContent = window.i18n.t('nav_admin_panel');
+            if (mobLogged) mobLogged.prepend(mobAdminBtn);
           }
         }
       } catch (err) {
         document.getElementById('auth-buttons-unlogged').style.display = 'flex';
         document.getElementById('auth-buttons-logged').style.display = 'none';
+        const mobUnlogged = document.getElementById('mobile-auth-unlogged');
+        const mobLogged = document.getElementById('mobile-auth-logged');
+        if (mobUnlogged) mobUnlogged.style.display = 'flex';
+        if (mobLogged) mobLogged.style.display = 'none';
       }
     }
 

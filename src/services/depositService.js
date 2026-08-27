@@ -270,6 +270,39 @@ class DepositService {
       };
     });
   }
+
+  /**
+   * Delete a deposit request permanently (Admin only)
+   */
+  async deleteDeposit(depositId, adminId) {
+    return await db.transaction(async (tx) => {
+      const depRes = await tx.query('SELECT * FROM deposits WHERE id = $1', [depositId]);
+      if (depRes.rows.length === 0) {
+        throw { code: 'DEPOSIT_NOT_FOUND', message: 'Deposit request not found.' };
+      }
+      const deposit = depRes.rows[0];
+
+      // Delete the deposit record
+      await tx.query('DELETE FROM deposits WHERE id = $1', [depositId]);
+
+      // Record in Admin Audit Log
+      await tx.query(
+        `INSERT INTO admin_logs (admin_id, action, target_type, target_id, before_state, after_state)
+         VALUES ($1, 'DEPOSIT_DELETE', 'DEPOSIT', $2, $3, $4)`,
+        [
+          adminId,
+          String(deposit.id),
+          JSON.stringify({ status: deposit.status, amount: deposit.amount, user_id: deposit.user_id }),
+          JSON.stringify({ deleted: true })
+        ]
+      );
+
+      return {
+        depositId: deposit.id,
+        deleted: true
+      };
+    });
+  }
 }
 
 module.exports = new DepositService();
