@@ -79,7 +79,7 @@ const translations = {
     currency_usd: "USD"
   },
   ar: {
-    brand_name: "أصالة",
+    brand_name: "عسلية",
     brand_tagline: "منصة التنفيذ اليدوي لخدمات السوشيال ميديا",
     nav_home: "الرئيسية",
     nav_services: "الخدمات",
@@ -97,7 +97,7 @@ const translations = {
     nav_admin_panel: "لوحة الإدارة",
 
     hero_tag: "تنفيذ يدوي حقيقي 100%",
-    hero_title: "عزز تواجدك على منصات التواصل مع أصالة",
+    hero_title: "عزز تواجدك على منصات التواصل مع عسلية",
     hero_desc: "المنصة الرائدة لخدمات التسويق الإلكتروني بالتنفيذ اليدوي الدقيق، أمان مالي صارم ودعم مباشر عبر واتساب.",
     get_started: "ابدأ الآن",
     view_services: "تصفح الخدمات",
@@ -108,7 +108,7 @@ const translations = {
     stat_completed: "طلبات مكتملة",
     stat_total_spent: "إجمالي الإنفاق",
 
-    login_title: "تسجيل الدخول إلى أصالة",
+    login_title: "تسجيل الدخول إلى عسلية",
     login_desc: "أدخل اسم المستخدم أو البريد الإلكتروني وكلمة المرور",
     login_btn: "دخول",
     register_title: "إنشاء حساب جديد",

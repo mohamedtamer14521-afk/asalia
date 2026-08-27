@@ -82,6 +82,9 @@ app.get('/admin', (req, res) => {
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(publicDir, 'app.html'));
 });
+app.get('/services', (req, res) => {
+  res.sendFile(path.join(publicDir, 'services.html'));
+});
 app.get('/login', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });

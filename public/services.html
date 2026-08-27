@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قائمة الخدمات والأسعار | عسلية — ASALIA</title>
+  <meta name="description" content="تصفح جميع خدمات عسلية للسوشيال ميديا: انستقرام، تيك توك، يوتيوب، فيسبوك، تليجرام وإكس مع الأسعار وسرعة التنفيذ.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .services-page-header {
+      text-align: center;
+      padding: 50px 20px 30px;
+    }
+    .services-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--apple-blue);
+      margin-bottom: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .services-catalog-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+      margin-bottom: 40px;
+    }
+    .service-row-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      margin-bottom: 12px;
+      transition: all 0.2s var(--spring);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .service-row-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 113, 227, 0.35);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    .service-media-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 260px;
+    }
+    .service-thumb-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .service-thumb-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .service-info-col h3 {
+      margin: 0 0 4px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .service-info-col p {
+      margin: 0;
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+    }
+    .service-stats-pills {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .service-price-tag {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--apple-blue);
+      background: rgba(0, 113, 227, 0.1);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(0, 113, 227, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="/" class="logo">
+        <div class="logo-badge">A</div>
+        <span class="logo-text">عسلية</span>
+      </a>
+
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="/" class="nav-link">الرئيسية</a></li>
+          <li><a href="/services" class="nav-link active">الخدمات</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="btn-icon" onclick="window.themeManager.toggle()" aria-label="Toggle Theme">☀️</button>
+        <div id="auth-buttons-unlogged" style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('login-modal')">تسجيل الدخول</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('register-modal')">حساب جديد</button>
+        </div>
+        <div id="auth-buttons-logged" style="display: none; gap: 8px;">
+          <a href="/dashboard" class="btn btn-primary btn-sm">لوحة التحكم</a>
+          <button class="btn btn-outline btn-sm" onclick="handleLogout()">خروج</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div class="services-page-header">
+      <div class="services-hero-badge">
+        <span>✨</span> <span>دليل خدمات ومنتجات عسلية الشامل</span>
+      </div>
+      <h1 class="hero-title" style="font-size: 2.3rem; margin-bottom: 12px;">قائمة الأسعار والخدمات</h1>
+      <p class="hero-subtitle" style="max-width: 650px; margin: 0 auto 30px;">
+        اختر المنصة وتصفح أسعار المتابعين والمشاهدات والتفاعلات الحقيقية مع معلومات السرعة والحدود، والتنفيذ الفوري.
+      </p>
+
+      <!-- Platform Quick Filter Grid (Apple Style) -->
+      <div class="platform-filter-grid" id="services-platform-grid" style="max-width: 900px; margin: 0 auto 20px;">
+        <button type="button" class="platform-pill-btn active" data-platform="all" onclick="filterByPlatform('all', this)">
+          <span>📱</span> <span>الكل</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="instagram" onclick="filterByPlatform('instagram', this)">
+          <span>📷</span> <span>انستقرام</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="tiktok" onclick="filterByPlatform('tiktok', this)">
+          <span>🎵</span> <span>تيك توك</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="youtube" onclick="filterByPlatform('youtube', this)">
+          <span>▶️</span> <span>يوتيوب</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="facebook" onclick="filterByPlatform('facebook', this)">
+          <span>🔵</span> <span>فيسبوك</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="telegram" onclick="filterByPlatform('telegram', this)">
+          <span>✈️</span> <span>تليجرام</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="twitter" onclick="filterByPlatform('twitter', this)">
+          <span>𝕏</span> <span>تويتر</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="whatsapp" onclick="filterByPlatform('whatsapp', this)">
+          <span>💬</span> <span>واتساب</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="snapchat" onclick="filterByPlatform('snapchat', this)">
+          <span>👻</span> <span>سناب شات</span>
+        </button>
+        <button type="button" class="platform-pill-btn" data-platform="other" onclick="filterByPlatform('other', this)">
+          <span>➕</span> <span>أخرى</span>
+        </button>
+      </div>
+
+      <!-- Instant Search Bar (Apple Style) -->
+      <div class="apple-search-wrapper" style="max-width: 600px; margin: 0 auto 30px;">
+        <span class="apple-search-icon">🔍</span>
+        <input type="text" id="public-services-search" class="apple-search-input" placeholder="ابحث عن أي خدمة بالاسم أو المنصة أو الرقم..." oninput="onSearchQueryChanged(this.value)">
+      </div>
+    </div>
+
+    <!-- Services Container List -->
+    <div class="services-catalog-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <h2 style="font-size: 1.25rem; margin: 0;">
+          <span>🌟</span> الخدمات المتاحة
+        </h2>
+        <span class="badge badge-approved" id="services-count-badge">جاري التحميل...</span>
+      </div>
+
+      <div id="services-list-container">
+        <div style="text-align: center; padding: 50px;">
+          <div class="ios-spinner" style="margin: 0 auto 14px;"></div>
+          <p style="color: var(--text-muted);">جاري تحميل الخدمات النشطة...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
+      <h3 class="card-title">تسجيل الدخول إلى عسلية</h3>
+      <p class="form-helper" style="margin-bottom: 20px;">أدخل اسم المستخدم أو البريد الإلكتروني وكلمة المرور</p>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">اسم المستخدم أو البريد</label>
+          <input type="text" id="login-username" class="form-input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <input type="password" id="login-password" class="form-input" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+          دخول
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+        <span>ليس لديك حساب؟</span>
+        <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary); font-weight: 600;">إنشاء حساب جديد</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="register-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('register-modal')">&times;</button>
+      <h3 class="card-title">إنشاء حساب جديد في عسلية</h3>
+      <p class="form-helper" style="margin-bottom: 20px;">ابدأ بطلب خدمات السوشيال ميديا بكل سهولة وأمان</p>
+
+      <form id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label">اسم المستخدم</label>
+          <input type="text" id="reg-username" class="form-input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">البريد الإلكتروني</label>
+          <input type="email" id="reg-email" class="form-input" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <input type="password" id="reg-password" class="form-input" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">تأكيد كلمة المرور</label>
+          <input type="password" id="reg-confirm-password" class="form-input" required autocomplete="new-password">
+        </div>
+        <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+          تسجيل حساب
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+        <span>لديك حساب بالفعل؟</span>
+        <a href="#" onclick="switchModal('register-modal', 'login-modal')" style="color: var(--primary); font-weight: 600;">تسجيل الدخول</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp Floating Dock -->
+  <a href="https://wa.me/201030646757" target="_blank" rel="noopener" class="apple-fab-whatsapp" title="تواصل معنا عبر واتساب">
+    <span>واتساب الدعم</span> 💬
+  </a>
+
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script>
+    let allServices = [];
+    let currentPlatform = 'all';
+    let currentSearch = '';
+
+    function getPlatformEmoji(platform) {
+      const p = (platform || '').toLowerCase();
+      if (p.includes('insta')) return '📷';
+      if (p.includes('tik')) return '🎵';
+      if (p.includes('you')) return '▶️';
+      if (p.includes('face')) return '🔵';
+      if (p.includes('tele')) return '✈️';
+      if (p.includes('twit') || p === 'x') return '𝕏';
+      if (p.includes('what')) return '💬';
+      if (p.includes('snap')) return '👻';
+      return '🌟';
+    }
+
+    async function loadPublicServices() {
+      try {
+        const services = await window.api.get('/services');
+        allServices = services || [];
+        renderServicesList();
+      } catch (err) {
+        document.getElementById('services-list-container').innerHTML = `
+          <div style="text-align: center; padding: 40px; color: var(--danger);">
+            فشل تحميل الخدمات: ${err.message || 'خطأ في الاتصال'}
+          </div>
+        `;
+      }
+    }
+
+    function filterByPlatform(platform, btn) {
+      currentPlatform = (platform || 'all').toLowerCase();
+      document.querySelectorAll('#services-platform-grid .platform-pill-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderServicesList();
+    }
+
+    function onSearchQueryChanged(q) {
+      currentSearch = (q || '').toLowerCase().trim();
+      renderServicesList();
+    }
+
+    function renderServicesList() {
+      const container = document.getElementById('services-list-container');
+      const badge = document.getElementById('services-count-badge');
+
+      let filtered = allServices;
+
+      if (currentPlatform !== 'all') {
+        filtered = filtered.filter(s => s.platform?.toLowerCase() === currentPlatform);
+      }
+
+      if (currentSearch) {
+        filtered = filtered.filter(s => {
+          const text = `${s.id} ${s.name_ar || ''} ${s.name_en || ''} ${s.platform || ''}`.toLowerCase();
+          return text.includes(currentSearch);
+        });
+      }
+
+      badge.textContent = `${filtered.length} خدمة متوفرة`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 50px; color: var(--text-muted);">
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 12px;">🔍</span>
+            لا توجد خدمات مطابقة لبحثك في هذا القسم حالياً.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(s => `
+        <div class="service-row-item">
+          <div class="service-media-meta">
+            <div class="service-thumb-box">
+              ${s.image_url ? `<img src="${s.image_url}" alt="${s.name_ar}">` : `<span style="font-size: 1.4rem;">${getPlatformEmoji(s.platform)}</span>`}
+            </div>
+            <div class="service-info-col">
+              <h3>#${s.id} - ${s.name_ar}</h3>
+              <p>${s.name_en || ''} ${s.description_ar ? `— ${s.description_ar}` : ''}</p>
+            </div>
+          </div>
+
+          <div class="service-stats-pills">
+            <span class="badge badge-in-progress">${s.platform}</span>
+            <span class="badge badge-completed">⚡ ${s.processing_time_info || '0-24 ساعة'}</span>
+            <span class="badge badge-pending">الحدود: ${s.min_quantity} - ${s.max_quantity}</span>
+            <div class="service-price-tag">
+              ${Number(s.price_per_1000).toFixed(2)} EGP / 1000
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="goToOrder(${s.id})">
+              🛒 اطلب الآن
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      if (window.api?.renderAppleEmojis) {
+        window.api.renderAppleEmojis(container);
+      }
+    }
+
+    function goToOrder(serviceId) {
+      const user = window.api.getUser();
+      if (user) {
+        window.location.href = `/dashboard`;
+      } else {
+        openModal('register-modal');
+        showToast('يرجى إنشاء حساب أو تسجيل الدخول لتقديم طلبك فوراً 🚀', 'info');
+      }
+    }
+
+    // Modal controls
+    function openModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.add('active');
+    }
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.remove('active');
+    }
+    function switchModal(from, to) {
+      closeModal(from);
+      openModal(to);
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('login-username').value.trim();
+      const p = document.getElementById('login-password').value;
+      try {
+        await window.api.login(u, p);
+        showToast('تم تسجيل الدخول بنجاح!', 'success');
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showToast(err.message || 'بيانات الدخول غير صحيحة', 'error');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const username = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+
+      if (password !== confirmPassword) {
+        showToast('كلمتا المرور غير متطابقتين', 'error');
+        return;
+      }
+
+      try {
+        await window.api.register(username, email, password);
+        showToast('تم إنشاء الحساب بنجاح!', 'success');
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showToast(err.message || 'فشل التسجيل', 'error');
+      }
+    }
+
+    function checkAuthState() {
+      const user = window.api.getUser();
+      const unlogged = document.getElementById('auth-buttons-unlogged');
+      const logged = document.getElementById('auth-buttons-logged');
+      if (user) {
+        if (unlogged) unlogged.style.display = 'none';
+        if (logged) logged.style.display = 'flex';
+      } else {
+        if (unlogged) unlogged.style.display = 'flex';
+        if (logged) logged.style.display = 'none';
+      }
+    }
+
+    function handleLogout() {
+      window.api.logout();
+      window.location.reload();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuthState();
+      loadPublicServices();
+    });
+  </script>
+</body>
+</html>
