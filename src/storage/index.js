@@ -2,9 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const os = require('os');
+const isVercel = Boolean(process.env.VERCEL);
+const UPLOADS_DIR = isVercel
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(process.cwd(), 'uploads');
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Silent fallback for read-only serverless filesystem
 }
 
 class StorageManager {

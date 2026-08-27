@@ -27,9 +27,18 @@ app.use(cookieParser());
 
 // Serve Static Frontend Assets & Uploads
 const publicDir = path.join(__dirname, '..', 'public');
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 app.use(express.static(publicDir));
-app.use('/uploads', express.static(uploadsDir));
+
+const isVercel = Boolean(process.env.VERCEL);
+const uploadsDir = isVercel
+  ? path.join(require('os').tmpdir(), 'uploads')
+  : path.join(__dirname, '..', 'uploads');
+
+try {
+  if (fs.existsSync(uploadsDir)) {
+    app.use('/uploads', express.static(uploadsDir));
+  }
+} catch (e) {}
 
 // Health Check
 app.get('/api/health', (req, res) => {
