@@ -521,7 +521,11 @@ function renderAdminServicesTable() {
         </span>
       </td>
       <td>
-        <div style="display: flex; gap: 6px;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <label class="btn btn-outline btn-sm" style="margin: 0; cursor: pointer;" title="تغيير أو رفع صورة الخدمة من جهازك">
+            🖼️ الصورة
+            <input type="file" accept="image/*" style="display: none;" onchange="uploadServiceImageDirect(${s.id}, this)">
+          </label>
           <button class="btn btn-outline btn-sm" onclick="editServicePrice(${s.id}, ${s.price_per_1000})">
             السعر
           </button>
@@ -572,6 +576,32 @@ async function editServicePrice(serviceId, currentPrice) {
     loadAdminServices();
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+async function uploadServiceImageDirect(serviceId, input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  showToast('جاري رفع وتحديث صورة الخدمة...', 'info');
+  try {
+    const res = await window.api.request('/admin/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    await window.api.request(`/admin/services/${serviceId}`, {
+      method: 'PUT',
+      body: { image_url: res.url }
+    });
+
+    showToast('تم تحديث وحفظ صورة الخدمة بنجاح! 📸', 'success');
+    loadAdminServices();
+  } catch (err) {
+    showToast(err.message || 'فشل رفع صورة الخدمة', 'error');
   }
 }
 
@@ -723,7 +753,11 @@ async function loadAdminPaymentMethods() {
           </span>
         </td>
         <td>
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <label class="btn btn-outline btn-sm" style="margin: 0; cursor: pointer;" title="تغيير أو رفع لوجو وسيلة الدفع من جهازك">
+              🖼️ الشعار
+              <input type="file" accept="image/*" style="display: none;" onchange="uploadPaymentMethodImageDirect(${m.id}, this)">
+            </label>
             <button class="btn btn-outline btn-sm" onclick="editPaymentMethodNumber(${m.id}, '${m.account_number}')">
               الرقم
             </button>
@@ -779,6 +813,32 @@ async function deletePaymentMethod(id, name) {
     loadAdminPaymentMethods();
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+async function uploadPaymentMethodImageDirect(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  showToast('جاري رفع وتحديث شعار وسيلة الدفع...', 'info');
+  try {
+    const res = await window.api.request('/admin/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    await window.api.request(`/admin/payment-methods/${id}`, {
+      method: 'PUT',
+      body: { image_url: res.url }
+    });
+
+    showToast('تم تحديث وحفظ شعار وسيلة الدفع بنجاح! 📸', 'success');
+    loadAdminPaymentMethods();
+  } catch (err) {
+    showToast(err.message || 'فشل رفع الشعار', 'error');
   }
 }
 
