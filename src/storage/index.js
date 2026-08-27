@@ -54,7 +54,7 @@ class StorageManager {
     }
 
     return {
-      key: path.basename(key),
+      key: dataUrl,
       url: dataUrl,
       fileType: file.mimetype,
       size: file.size,
@@ -133,6 +133,31 @@ class StorageManager {
    * @param {string} key
    */
   async getFile(key) {
+    if (!key) return { exists: false };
+
+    // If key is a Base64 Data URL, decode and serve directly
+    if (key.startsWith('data:')) {
+      try {
+        const parts = key.split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const buffer = Buffer.from(parts[1], 'base64');
+        const stream = require('stream');
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(buffer);
+
+        return {
+          stream: bufferStream,
+          buffer,
+          mime,
+          isDataUrl: true,
+          exists: true
+        };
+      } catch (e) {
+        console.error('[StorageManager] Failed to decode Data URL:', e);
+      }
+    }
+
     const safeKey = path.basename(key);
     const localPath = path.join(UPLOADS_DIR, safeKey);
     if (fs.existsSync(localPath)) {
