@@ -436,59 +436,111 @@ async function toggleUserActive(userId, makeActive) {
 // -------------------------------------------------------------
 // SERVICES MANAGEMENT
 // -------------------------------------------------------------
+let adminAllServices = [];
+let adminCurrentPlatform = 'all';
+
+function getPlatformIcon(platform) {
+  const p = (platform || '').toLowerCase();
+  if (p.includes('insta')) return '📷';
+  if (p.includes('tik')) return '🎵';
+  if (p.includes('you')) return '▶️';
+  if (p.includes('face')) return '🔵';
+  if (p.includes('tele')) return '✈️';
+  if (p.includes('twit') || p === 'x') return '𝕏';
+  if (p.includes('what')) return '💬';
+  if (p.includes('snap')) return '👻';
+  return '🌟';
+}
+
 async function loadAdminServices() {
   const tbody = document.getElementById('adm-services-tbody');
-  tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const services = await window.api.get('/services');
-    if (!services || services.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد خدمات مضافة حتى الآن.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = services.map(s => `
-      <tr>
-        <td><strong>#${s.id}</strong></td>
-        <td><span class="badge badge-in-progress">${s.platform}</span></td>
-        <td>
-          <strong>${s.name_ar}</strong><br>
-          <small style="color:var(--text-muted);">${s.name_en}</small>
-        </td>
-        <td><strong>${Number(s.price_per_1000).toFixed(2)} EGP</strong></td>
-        <td>${s.min_quantity}</td>
-        <td>${s.max_quantity}</td>
-        <td><code>${s.link_type}</code></td>
-        <td>
-          <span class="badge ${s.is_active ? 'badge-completed' : 'badge-rejected'}">
-            ${s.is_active ? 'مفعل' : 'معطل'}
-          </span>
-        </td>
-        <td>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn btn-outline btn-sm" onclick="editServicePrice(${s.id}, ${s.price_per_1000})">
-              السعر
-            </button>
-            <button class="btn btn-${s.is_active ? 'secondary' : 'success'} btn-sm" onclick="toggleServiceActive(${s.id}, ${!s.is_active})">
-              ${s.is_active ? 'تعطيل' : 'تفعيل'}
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteService(${s.id}, '${s.name_ar}')">
-              حذف
-            </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+    adminAllServices = services || [];
+    renderAdminServicesTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
   }
+}
+
+function filterAdminByPlatform(platform, btnElement) {
+  adminCurrentPlatform = (platform || 'all').toLowerCase();
+  document.querySelectorAll('#admin-tab-services .platform-pill-btn').forEach(b => b.classList.remove('active'));
+  if (btnElement) btnElement.classList.add('active');
+  renderAdminServicesTable();
+}
+
+function filterAdminServices() {
+  renderAdminServicesTable();
+}
+
+function renderAdminServicesTable() {
+  const tbody = document.getElementById('adm-services-tbody');
+  const query = (document.getElementById('adm-services-search')?.value || '').toLowerCase().trim();
+
+  let filtered = adminAllServices;
+
+  if (adminCurrentPlatform && adminCurrentPlatform !== 'all') {
+    filtered = filtered.filter(s => s.platform?.toLowerCase() === adminCurrentPlatform);
+  }
+
+  if (query) {
+    filtered = filtered.filter(s => {
+      const text = `${s.id} ${s.name_ar || ''} ${s.name_en || ''} ${s.platform || ''}`.toLowerCase();
+      return text.includes(query);
+    });
+  }
+
+  if (!filtered || filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد خدمات مطابقة.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => `
+    <tr>
+      <td><strong>#${s.id}</strong></td>
+      <td>
+        <div style="width: 38px; height: 38px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color);">
+          ${s.image_url ? `<img src="${s.image_url}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="font-size:1.15rem;">${getPlatformIcon(s.platform)}</span>`}
+        </div>
+      </td>
+      <td><span class="badge badge-in-progress">${s.platform}</span></td>
+      <td>
+        <strong>${s.name_ar}</strong><br>
+        <small style="color:var(--text-muted);">${s.name_en}</small>
+      </td>
+      <td><strong>${Number(s.price_per_1000).toFixed(2)} EGP</strong></td>
+      <td>${s.min_quantity}</td>
+      <td>${s.max_quantity}</td>
+      <td><code>${s.link_type}</code></td>
+      <td>
+        <span class="badge ${s.is_active ? 'badge-completed' : 'badge-rejected'}">
+          ${s.is_active ? 'مفعل' : 'معطل'}
+        </span>
+      </td>
+      <td>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-outline btn-sm" onclick="editServicePrice(${s.id}, ${s.price_per_1000})">
+            السعر
+          </button>
+          <button class="btn btn-${s.is_active ? 'secondary' : 'success'} btn-sm" onclick="toggleServiceActive(${s.id}, ${!s.is_active})">
+            ${s.is_active ? 'تعطيل' : 'تفعيل'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteService(${s.id}, '${s.name_ar}')">
+            حذف
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
 }
 
 async function toggleServiceActive(serviceId, makeActive) {
   try {
-    await window.api.request(`/admin/services/${serviceId}`, {
-      method: 'PUT',
-      body: { is_active: makeActive }
+    await window.api.put(`/admin/services/${serviceId}`, {
+      is_active: makeActive
     });
     showToast(makeActive ? 'تم تفعيل الخدمة' : 'تم تعطيل الخدمة', 'info');
     loadAdminServices();
@@ -513,9 +565,8 @@ async function editServicePrice(serviceId, currentPrice) {
   if (!newPrice || isNaN(parseFloat(newPrice))) return;
 
   try {
-    await window.api.request(`/admin/services/${serviceId}`, {
-      method: 'PUT',
-      body: { price_per_1000: parseFloat(newPrice) }
+    await window.api.put(`/admin/services/${serviceId}`, {
+      price_per_1000: parseFloat(newPrice)
     });
     showToast('تم تحديث سعر الخدمة بنجاح!', 'success');
     loadAdminServices();
@@ -524,31 +575,116 @@ async function editServicePrice(serviceId, currentPrice) {
   }
 }
 
-function openCreateServiceModal() {
-  const platform = prompt('المنصة (instagram, tiktok, youtube, facebook, telegram, other):', 'instagram');
-  if (!platform) return;
-  const name_ar = prompt('اسم الخدمة بالعربية:', 'متابعين انستقرام حقيقيين');
-  if (!name_ar) return;
-  const name_en = prompt('اسم الخدمة بالإنجليزية:', 'Instagram Real Followers');
-  if (!name_en) return;
-  const price = prompt('السعر لكل 1000 (بالجنيه):', '50');
-  if (!price || isNaN(parseFloat(price))) return;
-  const min = prompt('الحد الأدنى للطلب:', '100');
-  const max = prompt('الحد الأقصى للطلب:', '10000');
-  const link_type = prompt('نوع الرابط (instagram_profile, instagram_post, tiktok_video, tiktok_profile, youtube_video, youtube_channel, custom):', 'instagram_profile');
+function updateServiceImagePreview(url) {
+  const container = document.getElementById('modal-service-img-preview');
+  const img = document.getElementById('modal-service-preview-tag');
+  if (url && url.trim()) {
+    img.src = url.trim();
+    img.onerror = () => { if (container) container.style.display = 'none'; };
+    img.onload = () => { if (container) container.style.display = 'block'; };
+  } else {
+    if (container) container.style.display = 'none';
+  }
+}
 
-  window.api.post('/admin/services', {
-    platform, name_ar, name_en,
-    price_per_1000: parseFloat(price),
-    min_quantity: parseInt(min || 100, 10),
-    max_quantity: parseInt(max || 10000, 10),
-    link_type: link_type || 'custom'
-  }).then(() => {
-    showToast('تمت إضافة الخدمة بنجاح!', 'success');
+async function uploadDirectServiceImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  showToast('جاري رفع صورة الخدمة من جهازك...', 'info');
+  try {
+    const res = await window.api.request('/admin/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    document.getElementById('modal-service-image').value = res.url;
+    updateServiceImagePreview(res.url);
+    showToast('تم رفع صورة الخدمة بنجاح! 📸', 'success');
+  } catch (err) {
+    showToast(err.message || 'فشل رفع صورة الخدمة', 'error');
+  }
+}
+
+let adminCategories = [];
+
+async function loadAdminCategories() {
+  try {
+    adminCategories = await window.api.get('/services/categories');
+    const catSelect = document.getElementById('modal-service-category');
+    if (catSelect && adminCategories && adminCategories.length > 0) {
+      catSelect.innerHTML = '<option value="">-- ربط تلقائي حسب المنصة --</option>' +
+        adminCategories.map(c => `<option value="${c.id}">${c.name_ar} (${c.platform})</option>`).join('');
+    }
+  } catch (e) {
+    console.error('Failed to load admin categories:', e);
+  }
+}
+
+function openCreateServiceModal() {
+  loadAdminCategories();
+  const modal = document.getElementById('create-service-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    const form = document.getElementById('create-service-form');
+    if (form) form.reset();
+    const preview = document.getElementById('modal-service-img-preview');
+    if (preview) preview.style.display = 'none';
+  }
+}
+
+function closeCreateServiceModal() {
+  const modal = document.getElementById('create-service-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function onModalPlatformChanged(platform) {
+  const catSelect = document.getElementById('modal-service-category');
+  if (!catSelect || !adminCategories || adminCategories.length === 0) return;
+  const match = adminCategories.find(c => c.platform.toLowerCase() === platform.toLowerCase());
+  if (match) {
+    catSelect.value = match.id;
+  } else {
+    catSelect.value = '';
+  }
+}
+
+async function submitCreateService(e) {
+  e.preventDefault();
+  const platform = document.getElementById('modal-service-platform').value;
+  const category_id = document.getElementById('modal-service-category').value;
+  const name_ar = document.getElementById('modal-service-name-ar').value.trim();
+  const name_en = document.getElementById('modal-service-name-en').value.trim();
+  const price = document.getElementById('modal-service-price').value;
+  const min = document.getElementById('modal-service-min').value;
+  const max = document.getElementById('modal-service-max').value;
+  const link_type = document.getElementById('modal-service-linktype').value;
+  const processing_time_info = document.getElementById('modal-service-speed').value.trim();
+  const image_url = document.getElementById('modal-service-image')?.value.trim() || '';
+
+  try {
+    await window.api.post('/admin/services', {
+      platform,
+      category_id: category_id ? parseInt(category_id, 10) : undefined,
+      name_ar,
+      name_en,
+      price_per_1000: parseFloat(price),
+      min_quantity: parseInt(min, 10),
+      max_quantity: parseInt(max, 10),
+      link_type,
+      processing_time_info,
+      image_url
+    });
+
+    showToast('تمت إضافة الخدمة وحفظ صورتها بنجاح!', 'success');
+    closeCreateServiceModal();
     loadAdminServices();
-  }).catch(err => {
-    showToast(err.message, 'error');
-  });
+  } catch (err) {
+    showToast(err.message || 'فشل إضافة الخدمة', 'error');
+  }
 }
 
 // -------------------------------------------------------------

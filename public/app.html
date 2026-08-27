@@ -366,9 +366,49 @@
             </div>
 
             <form id="new-order-form" onsubmit="handlePlaceOrder(event)">
+              <!-- Platform Quick Filter Grid (Apple Style) -->
+              <div class="platform-filter-grid" id="platform-filter-grid">
+                <button type="button" class="platform-pill-btn active" data-platform="all" onclick="selectPlatformFilter('all', this)">
+                  <span>📱</span> <span>الكل</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="instagram" onclick="selectPlatformFilter('instagram', this)">
+                  <span>📷</span> <span>انستقرام</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="tiktok" onclick="selectPlatformFilter('tiktok', this)">
+                  <span>🎵</span> <span>تيك توك</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="youtube" onclick="selectPlatformFilter('youtube', this)">
+                  <span>▶️</span> <span>يوتيوب</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="facebook" onclick="selectPlatformFilter('facebook', this)">
+                  <span>🔵</span> <span>فيسبوك</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="telegram" onclick="selectPlatformFilter('telegram', this)">
+                  <span>✈️</span> <span>تليجرام</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="twitter" onclick="selectPlatformFilter('twitter', this)">
+                  <span>𝕏</span> <span>تويتر</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="whatsapp" onclick="selectPlatformFilter('whatsapp', this)">
+                  <span>💬</span> <span>واتساب</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="snapchat" onclick="selectPlatformFilter('snapchat', this)">
+                  <span>👻</span> <span>سناب شات</span>
+                </button>
+                <button type="button" class="platform-pill-btn" data-platform="other" onclick="selectPlatformFilter('other', this)">
+                  <span>➕</span> <span>أخرى</span>
+                </button>
+              </div>
+
+              <!-- Instant Service Search Bar (Apple Style) -->
+              <div class="apple-search-wrapper">
+                <span class="apple-search-icon">🔍</span>
+                <input type="text" id="order-service-search" class="apple-search-input" placeholder="ابحث عن أي خدمة بالاسم أو المنصة أو الرقم..." oninput="onServiceSearchChanged(this.value)">
+              </div>
+
               <!-- Category Selector -->
               <div class="form-group">
-                <label class="form-label" data-i18n="category">القسم / المنصة</label>
+                <label class="form-label" data-i18n="category">القسم / Category</label>
                 <select id="order-category-select" class="form-select" onchange="onCategoryChanged()">
                   <option value="">-- اختر القسم --</option>
                 </select>

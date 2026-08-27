@@ -389,11 +389,42 @@
         <!-- TAB 5: SERVICES CRUD -->
         <div id="admin-tab-services" class="admin-tab">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
                 <span>🌟</span> إدارة الخدمات والأسعار
               </h2>
-              <button class="btn btn-primary btn-sm" onclick="openCreateServiceModal()">+ إضافة خدمة جديدة</button>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="adm-services-search" class="form-input" style="width: 220px;" placeholder="بحث في الخدمات..." oninput="filterAdminServices()">
+                <button class="btn btn-primary btn-sm" onclick="openCreateServiceModal()">+ إضافة خدمة جديدة</button>
+              </div>
+            </div>
+
+            <!-- Admin Platform Filter Quick Pills -->
+            <div class="platform-filter-grid" style="margin-top: 14px; margin-bottom: 16px;">
+              <button type="button" class="platform-pill-btn active" data-platform="all" onclick="filterAdminByPlatform('all', this)">
+                <span>📱</span> <span>الكل</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="instagram" onclick="filterAdminByPlatform('instagram', this)">
+                <span>📷</span> <span>انستقرام</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="tiktok" onclick="filterAdminByPlatform('tiktok', this)">
+                <span>🎵</span> <span>تيك توك</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="youtube" onclick="filterAdminByPlatform('youtube', this)">
+                <span>▶️</span> <span>يوتيوب</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="facebook" onclick="filterAdminByPlatform('facebook', this)">
+                <span>🔵</span> <span>فيسبوك</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="telegram" onclick="filterAdminByPlatform('telegram', this)">
+                <span>✈️</span> <span>تليجرام</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="twitter" onclick="filterAdminByPlatform('twitter', this)">
+                <span>𝕏</span> <span>تويتر</span>
+              </button>
+              <button type="button" class="platform-pill-btn" data-platform="other" onclick="filterAdminByPlatform('other', this)">
+                <span>➕</span> <span>أخرى</span>
+              </button>
             </div>
 
             <div class="table-responsive">
@@ -401,6 +432,7 @@
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th>الصورة</th>
                     <th>المنصة</th>
                     <th>اسم الخدمة (AR/EN)</th>
                     <th>السعر / 1000</th>
@@ -408,11 +440,11 @@
                     <th>الحد الأقصى</th>
                     <th>نوع الرابط</th>
                     <th>الحالة</th>
-                    <th>تعديل</th>
+                    <th>إجراءات</th>
                   </tr>
                 </thead>
                 <tbody id="adm-services-tbody">
-                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل الخدمات...</td></tr>
+                  <tr><td colspan="10" style="text-align: center; padding: 25px;">جاري تحميل الخدمات...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -565,6 +597,102 @@
       <div id="proof-image-container" style="min-height: 250px; display: flex; align-items: center; justify-content: center;">
         <img id="proof-img" src="" alt="Payment Proof" style="max-width: 100%; max-height: 500px; border-radius: var(--radius-md); object-fit: contain; box-shadow: var(--shadow-md);">
       </div>
+    </div>
+  <!-- Modal: Add New Service (Apple Style) -->
+  <div id="create-service-modal" class="apple-modal-backdrop" style="display: none;">
+    <div class="apple-modal-card">
+      <div class="apple-modal-header">
+        <h3 style="margin: 0; font-size: 1.25rem;">✨ إضافة خدمة جديدة</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCreateServiceModal()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+      </div>
+      <form id="create-service-form" onsubmit="submitCreateService(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 16px;">
+        <div class="form-group">
+          <label class="form-label">المنصة (Platform)</label>
+          <select id="modal-service-platform" class="form-select" onchange="onModalPlatformChanged(this.value)" required>
+            <option value="instagram">انستقرام (Instagram)</option>
+            <option value="tiktok">تيك توك (TikTok)</option>
+            <option value="youtube">يوتيوب (YouTube)</option>
+            <option value="facebook">فيسبوك (Facebook)</option>
+            <option value="telegram">تليجرام (Telegram)</option>
+            <option value="twitter">إكس / تويتر (Twitter)</option>
+            <option value="whatsapp">واتساب (WhatsApp)</option>
+            <option value="snapchat">سناب شات (Snapchat)</option>
+            <option value="other">أخرى (Other)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">القسم التابع له (Category)</label>
+          <select id="modal-service-category" class="form-select">
+            <option value="">-- ربط تلقائي حسب المنصة --</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">اسم الخدمة بالعربية</label>
+            <input type="text" id="modal-service-name-ar" class="form-input" placeholder="مثال: متابعين انستقرام حقيقيين" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">اسم الخدمة بالإنجليزية</label>
+            <input type="text" id="modal-service-name-en" class="form-input" placeholder="e.g. Real Instagram Followers" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">السعر / 1000 (EGP)</label>
+            <input type="number" step="0.01" id="modal-service-price" class="form-input" placeholder="50.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الحد الأدنى (Min)</label>
+            <input type="number" id="modal-service-min" class="form-input" placeholder="100" value="100" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الحد الأقصى (Max)</label>
+            <input type="number" id="modal-service-max" class="form-input" placeholder="10000" value="10000" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">نوع الرابط المطلوب من العميل</label>
+          <select id="modal-service-linktype" class="form-select">
+            <option value="instagram_profile">رابط بروفايل انستقرام (Profile Link)</option>
+            <option value="instagram_post">رابط بوست / ريلز انستقرام (Post/Reel Link)</option>
+            <option value="tiktok_video">رابط فيديو تيك توك (TikTok Video)</option>
+            <option value="tiktok_profile">رابط حساب تيك توك (TikTok Profile)</option>
+            <option value="youtube_video">رابط فيديو يوتيوب (YouTube Video)</option>
+            <option value="youtube_channel">رابط قناة يوتيوب (YouTube Channel)</option>
+            <option value="telegram_channel">رابط قناة / جروب تليجرام (Telegram Link)</option>
+            <option value="custom">رابط مخصص عام (Custom URL)</option>
+          </select>
+        </div>
+
+        <!-- Service Image / Icon Upload -->
+        <div class="form-group">
+          <label class="form-label">صورة / أيقونة الخدمة (اختياري)</label>
+          <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+            <input type="url" id="modal-service-image" class="form-input" placeholder="رابط الصورة أو اختر من جهازك" oninput="updateServiceImagePreview(this.value)">
+            <label class="btn btn-secondary" style="margin: 0; cursor: pointer; flex-shrink: 0;">
+              📁 اختر من جهازك
+              <input type="file" id="modal-service-img-file" accept="image/*" style="display: none;" onchange="uploadDirectServiceImage(this)">
+            </label>
+          </div>
+          <div id="modal-service-img-preview" style="display: none; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 8px; width: fit-content; margin-top: 5px;">
+            <img id="modal-service-preview-tag" src="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">سرعة التنفيذ التقديرية</label>
+          <input type="text" id="modal-service-speed" class="form-input" value="0-24 ساعة (فوري)" placeholder="0-24 ساعة">
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateServiceModal()">إلغاء</button>
+          <button type="submit" class="btn btn-primary">💾 حفظ الخدمة ونشرها فوراً</button>
+        </div>
+      </form>
     </div>
   </div>
 

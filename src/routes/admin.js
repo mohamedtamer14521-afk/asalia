@@ -539,11 +539,22 @@ router.post('/categories', async (req, res) => {
 
 router.post('/services', async (req, res) => {
   try {
-    const {
+    let {
       category_id, platform, name_en, name_ar, description_en, description_ar,
       price_per_1000, min_quantity, max_quantity, link_type = 'custom',
       processing_time_info = '0-24 Hours', image_url = ''
     } = req.body;
+
+    // Auto-link to matching category if category_id not explicitly provided
+    if (!category_id && platform) {
+      const catRes = await db.query(
+        'SELECT id FROM service_categories WHERE LOWER(platform) = LOWER($1) LIMIT 1',
+        [platform.toLowerCase()]
+      );
+      if (catRes.rows.length > 0) {
+        category_id = catRes.rows[0].id;
+      }
+    }
 
     const insertRes = await db.query(
       `INSERT INTO services (

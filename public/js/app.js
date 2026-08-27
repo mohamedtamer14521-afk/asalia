@@ -222,10 +222,51 @@ async function loadCategoriesAndServices() {
     currentServices = services;
 
     populateCategoriesSelect();
+    onCategoryChanged();
     renderServicesTable();
   } catch (err) {
     console.error('Failed to load services data:', err);
   }
+}
+
+let currentPlatformFilter = 'all';
+let currentSearchQuery = '';
+
+function selectPlatformFilter(platform, btnElement) {
+  currentPlatformFilter = (platform || 'all').toLowerCase();
+
+  // Update active button state
+  document.querySelectorAll('.platform-pill-btn').forEach(b => b.classList.remove('active'));
+  if (btnElement) {
+    btnElement.classList.add('active');
+  }
+
+  // Re-populate categories matching this platform
+  const catSelect = document.getElementById('order-category-select');
+  const isAr = window.i18n.lang === 'ar';
+
+  const filteredCats = currentPlatformFilter === 'all'
+    ? currentCategories
+    : currentCategories.filter(c => c.platform?.toLowerCase() === currentPlatformFilter);
+
+  if (catSelect) {
+    catSelect.innerHTML = `<option value="">-- ${isAr ? 'اختر القسم' : 'Select Category'} --</option>` +
+      filteredCats.map(c => `
+        <option value="${c.id}">${isAr ? c.name_ar : c.name_en}</option>
+      `).join('');
+
+    // If only one category matches, auto-select it!
+    if (filteredCats.length === 1) {
+      catSelect.value = filteredCats[0].id;
+    }
+  }
+
+  onCategoryChanged();
+}
+
+function onServiceSearchChanged(query) {
+  currentSearchQuery = (query || '').toLowerCase().trim();
+  onCategoryChanged();
 }
 
 function populateCategoriesSelect() {
@@ -233,29 +274,63 @@ function populateCategoriesSelect() {
   if (!catSelect) return;
 
   const isAr = window.i18n.lang === 'ar';
+  const filteredCats = currentPlatformFilter === 'all'
+    ? currentCategories
+    : currentCategories.filter(c => c.platform?.toLowerCase() === currentPlatformFilter);
+
   catSelect.innerHTML = `<option value="">-- ${isAr ? 'اختر القسم' : 'Select Category'} --</option>` +
-    currentCategories.map(c => `
+    filteredCats.map(c => `
       <option value="${c.id}">${isAr ? c.name_ar : c.name_en} (${c.platform})</option>
     `).join('');
 }
 
 function onCategoryChanged() {
-  const catId = document.getElementById('order-category-select').value;
+  const catSelect = document.getElementById('order-category-select');
+  const catId = catSelect ? catSelect.value : '';
   const servSelect = document.getElementById('order-service-select');
+  if (!servSelect) return;
   const isAr = window.i18n.lang === 'ar';
 
-  const filtered = catId 
-    ? currentServices.filter(s => s.category_id == catId)
-    : currentServices;
+  const selectedCat = currentCategories.find(c => c.id == catId);
 
-  servSelect.innerHTML = `<option value="">-- ${isAr ? 'اختر الخدمة' : 'Select Service'} --</option>` +
+  let filtered = currentServices;
+
+  // 1. Filter by platform pill if active
+  if (currentPlatformFilter && currentPlatformFilter !== 'all') {
+    filtered = filtered.filter(s => {
+      const p = s.platform?.toLowerCase();
+      if (p === currentPlatformFilter) return true;
+      if (s.category_id && currentCategories.find(c => c.id == s.category_id)?.platform?.toLowerCase() === currentPlatformFilter) return true;
+      return false;
+    });
+  }
+
+  // 2. Filter by category if selected
+  if (catId) {
+    filtered = filtered.filter(s => s.category_id == catId || (selectedCat && s.platform?.toLowerCase() === selectedCat.platform?.toLowerCase()));
+  }
+
+  // 3. Filter by search input if typed
+  if (currentSearchQuery) {
+    filtered = filtered.filter(s => {
+      const text = `${s.id} ${s.name_ar || ''} ${s.name_en || ''} ${s.platform || ''}`.toLowerCase();
+      return text.includes(currentSearchQuery);
+    });
+  }
+
+  servSelect.innerHTML = `<option value="">-- ${isAr ? 'اختر الخدمة' : 'Select Service'} (${filtered.length}) --</option>` +
     filtered.map(s => `
-      <option value="${s.id}">${isAr ? s.name_ar : s.name_en} — ${Number(s.price_per_1000).toFixed(2)} EGP / 1000</option>
+      <option value="${s.id}">#${s.id} - ${isAr ? s.name_ar : s.name_en} — ${Number(s.price_per_1000).toFixed(2)} EGP / 1000</option>
     `).join('');
 
-  document.getElementById('service-info-box').style.display = 'none';
-  selectedService = null;
-  calculateOrderPrice();
+  if (filtered.length === 1 && (catId || currentSearchQuery)) {
+    servSelect.value = filtered[0].id;
+    onServiceChanged();
+  } else {
+    document.getElementById('service-info-box').style.display = 'none';
+    selectedService = null;
+    calculateOrderPrice();
+  }
 }
 
 function onServiceChanged() {
@@ -461,7 +536,12 @@ function renderServicesTable() {
     <tr>
       <td><strong>#${s.id}</strong></td>
       <td><span class="badge badge-in-progress">${s.platform}</span></td>
-      <td>${isAr ? s.name_ar : s.name_en}</td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          ${s.image_url ? `<img src="${s.image_url}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0;">` : ''}
+          <span>${isAr ? s.name_ar : s.name_en}</span>
+        </div>
+      </td>
       <td><strong>${Number(s.price_per_1000).toFixed(2)} EGP</strong></td>
       <td>${s.min_quantity}</td>
       <td>${s.max_quantity}</td>
