@@ -1,0 +1,31 @@
+{
+  "name": "asalia-smm",
+  "version": "1.0.0",
+  "description": "ASALIA — Production SMM Order & Manual Fulfillment Platform",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "migrate": "node src/database/migrate.js",
+    "create-admin": "node scripts/create-admin.js",
+    "seed-dev": "node scripts/seed-dev.js",
+    "clean-data": "node scripts/clean-test-data.js",
+    "test": "node tests/platform.test.js"
+  },
+  "keywords": ["smm", "orders", "fulfillment", "asalia", "postgresql"],
+  "author": "ASALIA Team",
+  "license": "ISC",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.14",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.3"
+  }
+}

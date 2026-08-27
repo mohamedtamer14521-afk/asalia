@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASALIA | Customer Dashboard — أصالة</title>
+  <meta name="description" content="ASALIA Customer Portal — Place orders, manage wallet, track services.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 260px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 90;
+      transition: transform var(--transition-normal);
+    }
+    [dir="ltr"] .sidebar {
+      border-left: none;
+      border-right: 1px solid var(--border-color);
+    }
+    .sidebar-header {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sidebar-nav {
+      list-style: none;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .sidebar-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    .sidebar-item a:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface-elevated);
+    }
+    .sidebar-item a.active {
+      background: var(--gradient-brand);
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+    }
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      height: 72px;
+      background: var(--bg-surface-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 80;
+    }
+    .topbar-balance {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-surface-elevated);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .content-view {
+      padding: 28px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.25s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Mobile drawer */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    @media (max-width: 860px) {
+      .mobile-menu-btn { display: block; }
+      .sidebar {
+        position: fixed;
+        right: -280px;
+        top: 0;
+        bottom: 0;
+        box-shadow: var(--shadow-lg);
+      }
+      [dir="ltr"] .sidebar {
+        right: auto;
+        left: -280px;
+      }
+      .sidebar.open {
+        transform: translateX(-280px);
+      }
+      [dir="ltr"] .sidebar.open {
+        transform: translateX(280px);
+      }
+      .content-view { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-badge">A</div>
+          <span class="logo-text" data-i18n="brand_name">أصالة</span>
+        </a>
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">&times;</button>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="sidebar-item">
+          <a class="nav-tab-link active" onclick="switchTab('dashboard')" id="tab-link-dashboard">
+            <span>📊</span> <span data-i18n="nav_dashboard">لوحة التحكم</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('new-order')" id="tab-link-new-order">
+            <span>🛒</span> <span data-i18n="nav_new_order">طلب جديد</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('orders')" id="tab-link-orders">
+            <span>📦</span> <span data-i18n="nav_orders">طلباتي</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('services')" id="tab-link-services">
+            <span>🌟</span> <span data-i18n="nav_services">الخدمات</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('add-funds')" id="tab-link-add-funds">
+            <span>💳</span> <span data-i18n="nav_add_funds">إضافة رصيد</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('transactions')" id="tab-link-transactions">
+            <span>🧾</span> <span data-i18n="nav_transactions">سجل المعاملات</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="nav-tab-link" onclick="switchTab('tickets')" id="tab-link-tickets">
+            <span>💬</span> <span data-i18n="nav_tickets">الدعم الفني</span>
+          </a>
+        </li>
+        <li class="sidebar-item" id="admin-link-container" style="display: none;">
+          <a href="/admin" style="color: var(--accent); font-weight: bold;">
+            <span>👑</span> <span data-i18n="nav_admin_panel">لوحة الإدارة</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-outline btn-sm" style="width: 100%;" onclick="handleLogout()">
+          <span>🚪</span> <span data-i18n="nav_logout">تسجيل الخروج</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+          <div class="topbar-balance">
+            <span>💰</span>
+            <span id="topbar-balance-val">0.00 EGP</span>
+            <button class="btn-icon" style="width: 26px; height: 26px; font-size: 0.8rem;" onclick="refreshBalance()" title="تحديث الرصيد">🔄</button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <a href="https://wa.me/201030646757" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="color: var(--success); font-weight: 600;">
+            <span>💬</span> واتساب الدعم
+          </a>
+          <button id="lang-toggle-btn" class="btn btn-outline btn-sm" onclick="toggleLanguage()">English</button>
+          <button id="theme-toggle-btn" class="btn-icon" onclick="window.themeManager.toggle()">☀️</button>
+          <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);" id="topbar-username">...</div>
+        </div>
+      </header>
+
+      <!-- Content Views Container -->
+      <main class="content-view">
+
+        <!-- TAB 1: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-pane active">
+          <div style="margin-bottom: 24px;">
+            <h1 style="font-size: 1.8rem; font-weight: 800;" id="welcome-heading">مرحباً بك في أصالة</h1>
+            <p style="color: var(--text-secondary); font-size: 0.95rem;">متابعة فورية ومباشرة لرصيدك وطلباتك السارية</p>
+          </div>
+
+          <!-- Real PostgreSQL Statistics -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">💰</div>
+              <div>
+                <div class="stat-val" id="stat-balance">0.00 EGP</div>
+                <div class="stat-label" data-i18n="stat_balance">رصيد المحفظة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div>
+                <div class="stat-val" id="stat-orders">0</div>
+                <div class="stat-label" data-i18n="stat_orders">إجمالي الطلبات</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: var(--warning); background: var(--warning-bg);">⏳</div>
+              <div>
+                <div class="stat-val" id="stat-pending">0</div>
+                <div class="stat-label">طلبات قيد الانتظار</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: var(--info); background: var(--info-bg);">⚙️</div>
+              <div>
+                <div class="stat-val" id="stat-processing">0</div>
+                <div class="stat-label" data-i18n="stat_processing">قيد المعالجة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: var(--success); background: var(--success-bg);">✅</div>
+              <div>
+                <div class="stat-val" id="stat-completed">0</div>
+                <div class="stat-label" data-i18n="stat_completed">طلبات مكتملة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: var(--accent); background: var(--warning-bg);">💸</div>
+              <div>
+                <div class="stat-val" id="stat-spent">0.00 EGP</div>
+                <div class="stat-label" data-i18n="stat_total_spent">إجمالي الإنفاق</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div style="display: flex; gap: 12px; margin: 24px 0; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="switchTab('new-order')">
+              <span>🛒</span> <span data-i18n="nav_new_order">طلب جديد</span>
+            </button>
+            <button class="btn btn-secondary" onclick="switchTab('add-funds')">
+              <span>💳</span> <span data-i18n="nav_add_funds">إضافة رصيد</span>
+            </button>
+          </div>
+
+          <!-- Recent Orders Card -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>📦</span> أحدث الطلبات
+              </h2>
+              <button class="btn btn-outline btn-sm" onclick="switchTab('orders')">عرض الكل</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>الخدمة</th>
+                    <th>الكمية</th>
+                    <th>التكلفة</th>
+                    <th>الحالة</th>
+                    <th>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-orders-tbody">
+                  <tr><td colspan="6" style="text-align:center; padding: 20px; color:var(--text-muted);">لا توجد طلبات سابقة حتى الآن.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Transactions Card -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🧾</span> أحدث حركات الرصيد
+              </h2>
+              <button class="btn btn-outline btn-sm" onclick="switchTab('transactions')">عرض السجل</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>النوع</th>
+                    <th>المبلغ</th>
+                    <th>الرصيد بعد العملية</th>
+                    <th>البيان</th>
+                    <th>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-tx-tbody">
+                  <tr><td colspan="6" style="text-align:center; padding: 20px; color:var(--text-muted);">لا توجد معاملات رصيد مسجلة.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: NEW ORDER -->
+        <div id="tab-new-order" class="tab-pane">
+          <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <div class="card-header">
+              <h2 class="card-title" data-i18n="new_order_title">إنشاء طلب جديد</h2>
+              <span class="badge badge-pending">تنفيذ يدوي فوري</span>
+            </div>
+
+            <form id="new-order-form" onsubmit="handlePlaceOrder(event)">
+              <!-- Category Selector -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="category">القسم / المنصة</label>
+                <select id="order-category-select" class="form-select" onchange="onCategoryChanged()">
+                  <option value="">-- اختر القسم --</option>
+                </select>
+              </div>
+
+              <!-- Service Selector -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="service">الخدمة</label>
+                <select id="order-service-select" class="form-select" onchange="onServiceChanged()" required>
+                  <option value="">-- اختر الخدمة --</option>
+                </select>
+              </div>
+
+              <!-- Service Information Box -->
+              <div id="service-info-box" style="display: none; background: var(--bg-surface-elevated); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700;">
+                  <span id="service-info-price">السعر: --</span>
+                  <span id="service-info-limits">الحدود: --</span>
+                </div>
+                <p id="service-info-desc" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px;"></p>
+                <div style="display: flex; gap: 8px;">
+                  <span class="badge badge-completed" id="service-info-speed">⚡ سرعة التنفيذ: 0-24 ساعة</span>
+                  <span class="badge badge-in-progress" id="service-info-linktype">الرابط: رابط مخصص</span>
+                </div>
+              </div>
+
+              <!-- Target Link -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="target_link">الرابط المستهدف</label>
+                <input type="text" id="order-target-link" class="form-input" placeholder="https://..." required>
+                <div class="form-helper" id="order-link-helper">تأكد من إدخال الرابط الصحيح (الحساب عام وليس خاص).</div>
+              </div>
+
+              <!-- Username / Handle (Optional) -->
+              <div class="form-group">
+                <label class="form-label">اسم المستخدم المستهدف (اختياري)</label>
+                <input type="text" id="order-target-username" class="form-input" placeholder="@username">
+              </div>
+
+              <!-- Quantity -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="quantity">الكمية المطلوبة</label>
+                <input type="number" id="order-quantity" class="form-input" min="10" placeholder="1000" oninput="calculateOrderPrice()" required>
+              </div>
+
+              <!-- Real-time Charge Calculation Preview -->
+              <div style="background: var(--primary-light); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 0.85rem; color: var(--primary); font-weight: 600;" data-i18n="charge_preview">التكلفة الإجمالية المحسوبة</div>
+                  <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);" id="order-calculated-charge">0.00 EGP</div>
+                </div>
+                <div style="text-align: left;">
+                  <div style="font-size: 0.85rem; color: var(--text-secondary);">رصيدك الحالي</div>
+                  <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);" id="order-available-balance">0.00 EGP</div>
+                </div>
+              </div>
+
+              <!-- Submit Button with Cooldown state -->
+              <button type="submit" id="order-submit-btn" class="btn btn-primary btn-lg" style="width: 100%;">
+                <span>🛒</span> <span data-i18n="order_now_btn">تأكيد الطلب الآن</span>
+              </button>
+
+              <div id="order-cooldown-timer" style="display: none; text-align: center; margin-top: 12px; font-weight: 600; color: var(--warning);">
+                انتظر انتهاء المؤقت الأمني: <span id="cooldown-seconds">10</span> ثانية
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 3: ORDERS HISTORY -->
+        <div id="tab-orders" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>📦</span> <span data-i18n="nav_orders">طلباتي</span>
+              </h2>
+              <div style="display: flex; gap: 10px;">
+                <select id="orders-filter-status" class="form-select" style="width: auto;" onchange="loadCustomerOrders()">
+                  <option value="ALL">كل الحالات</option>
+                  <option value="PENDING">قيد الانتظار</option>
+                  <option value="PROCESSING">قيد المعالجة</option>
+                  <option value="IN_PROGRESS">قيد التنفيذ</option>
+                  <option value="COMPLETED">مكتمل</option>
+                  <option value="CANCELED">ملغي</option>
+                  <option value="REFUNDED">مسترجع</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="loadCustomerOrders()">🔄 تحديث</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>رقم الطلب</th>
+                    <th>الخدمة</th>
+                    <th>الرابط / المستخدم</th>
+                    <th>الكمية</th>
+                    <th>التكلفة</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الطلب</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-orders-tbody">
+                  <tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">جاري تحميل الطلبات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: SERVICES BROWSER -->
+        <div id="tab-services" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🌟</span> <span data-i18n="nav_services">تصفح الخدمات والأسعار</span>
+              </h2>
+              <input type="text" id="services-search-input" class="form-input" style="max-width: 280px;" placeholder="ابحث باسم الخدمة..." oninput="filterServicesTable()">
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المنصة</th>
+                    <th>اسم الخدمة</th>
+                    <th>السعر لكل 1000</th>
+                    <th>الحد الأدنى</th>
+                    <th>الحد الأقصى</th>
+                    <th>وقت التنفيذ</th>
+                    <th>طلب</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-services-tbody">
+                  <tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">جاري تحميل الخدمات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: ADD FUNDS -->
+        <div id="tab-add-funds" class="tab-pane">
+          <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <div class="card-header">
+              <h2 class="card-title" data-i18n="add_funds_title">شحن رصيد المحفظة</h2>
+              <span class="badge badge-approved">فودافون كاش / إنستاباي</span>
+            </div>
+
+            <form id="add-funds-form" onsubmit="handleDepositSubmit(event)">
+              <!-- Method Select -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="select_method">اختر طريقة الدفع</label>
+                <select id="deposit-method-select" class="form-select" onchange="onDepositMethodChanged()" required>
+                  <option value="">-- جارِ تحميل طرق الدفع المتاحة --</option>
+                </select>
+              </div>
+
+              <!-- Payment Instructions Box -->
+              <div id="deposit-instructions-box" style="display: none; background: var(--bg-surface-elevated); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <h4 style="color: var(--primary); margin-bottom: 8px;">تعليمات التحويل:</h4>
+                <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">
+                  رقم الحساب / المحفظة: <span id="deposit-account-number" style="color: var(--accent); user-select: all;">--</span>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="copyAccountNumber()" style="margin-right: 8px; margin-left: 8px;">نسخ</button>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px;" id="deposit-account-holder"></div>
+                <div style="font-size: 0.88rem; color: var(--text-secondary); white-space: pre-line;" id="deposit-instructions-text"></div>
+                <div style="margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);" id="deposit-limits-info"></div>
+              </div>
+
+              <!-- Deposit Amount -->
+              <div class="form-group">
+                <label class="form-label">المبلغ المراد شحنه (بالجنيه المصري EGP)</label>
+                <input type="number" step="0.01" id="deposit-amount" class="form-input" placeholder="500" required>
+              </div>
+
+              <!-- Sender Phone/Account -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="sender_number">رقم الهاتف أو الحساب المحول منه</label>
+                <input type="text" id="deposit-sender-number" class="form-input" placeholder="010XXXXXXXX" required>
+              </div>
+
+              <!-- Transaction Reference ID -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="trans_ref">رقم العملية / المرجع (Transaction ID)</label>
+                <input type="text" id="deposit-reference" class="form-input" placeholder="مثال: TXN-948123 أو كود الرسالة" required>
+              </div>
+
+              <!-- Screenshot Upload -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="upload_proof">إيصال أو لقطة شاشة للتحويل (مطلوب)</label>
+                <input type="file" id="deposit-screenshot" class="form-input" accept="image/jpeg,image/png,image/webp" required>
+                <div class="form-helper">صيغ مقبولة: JPG, PNG, WEBP — الحد الأقصى للحجم 5 ميجابايت.</div>
+              </div>
+
+              <div style="background: var(--warning-bg); border-right: 4px solid var(--warning); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 0.88rem; color: var(--text-primary);" data-i18n="deposit_pending_note">
+                سيقوم المسؤول بمراجعة الإيداع واعتماده، وفور الموافقة سيُضاف الرصيد لمحفظتك فوراً.
+              </div>
+
+              <button type="submit" id="deposit-submit-btn" class="btn btn-primary btn-lg" style="width: 100%;">
+                <span>💳</span> <span data-i18n="submit_deposit">إرسال طلب الإيداع</span>
+              </button>
+            </form>
+
+            <!-- Success Auxiliary WhatsApp Card -->
+            <div id="deposit-success-card" style="display: none; margin-top: 24px; padding: 20px; background: var(--bg-surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--success); text-align: center;">
+              <div style="font-size: 2.5rem; margin-bottom: 10px;">✅</div>
+              <h3 style="color: var(--success); margin-bottom: 8px;">تم تسجيل طلب الإيداع بنجاح!</h3>
+              <p style="color: var(--text-secondary); margin-bottom: 18px; font-size: 0.9rem;" id="deposit-success-details">
+                تم حفظ طلب الإيداع بقاعدة البيانات وسيقوم المسؤول بمراجعته واعتماده.
+              </p>
+              <a id="deposit-whatsapp-link" href="#" target="_blank" rel="noopener" class="btn btn-success btn-lg">
+                <span>💬</span> <span data-i18n="send_whatsapp_btn">إرسال تفاصيل الإيداع عبر واتساب</span>
+              </a>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px;">
+                ملاحظة: الإيداع مسجل ومحفوظ تلقائياً في النظام، إرسال رسالة الواتساب هو إجراء إضافي اختياري لتسريع التأكيد.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 6: TRANSACTIONS -->
+        <div id="tab-transactions" class="tab-pane">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🧾</span> <span data-i18n="nav_transactions">سجل المعاملات والعمليات المالية</span>
+              </h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadCustomerTransactions()">🔄 تحديث</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>النوع</th>
+                    <th>المبلغ</th>
+                    <th>الرصيد بعد العملية</th>
+                    <th>البيان</th>
+                    <th>رقم المرجع</th>
+                    <th>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-transactions-tbody">
+                  <tr><td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">جاري تحميل المعاملات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 7: TICKETS -->
+        <div id="tab-tickets" class="tab-pane">
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>💬</span> <span data-i18n="nav_tickets">تذاكر الدعم الفني</span>
+              </h2>
+              <button class="btn btn-primary btn-sm" onclick="openTicketModal()">+ فتح تذكرة جديدة</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>الموضوع</th>
+                    <th>القسم</th>
+                    <th>رقم الطلب المرتبط</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الإنشاء</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-tickets-tbody">
+                  <tr><td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد تذاكر دعم مفتوحة.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- Apple Floating WhatsApp Support Dock -->
+  <a href="https://wa.me/201030646757" target="_blank" class="apple-fab-whatsapp" title="تواصل عبر واتساب">
+    <span>💬</span>
+    <span>واتساب الدعم</span>
+  </a>
+
+  <!-- Scripts -->
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

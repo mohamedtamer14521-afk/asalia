@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASALIA | Admin Control Panel — لوحة الإدارة</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    .admin-sidebar {
+      width: 270px;
+      background: #0D1322;
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 90;
+    }
+    [dir="ltr"] .admin-sidebar {
+      border-left: none;
+      border-right: 1px solid var(--border-color);
+    }
+    .admin-sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .admin-nav {
+      list-style: none;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .admin-nav-item a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.92rem;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    .admin-nav-item a:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .admin-nav-item a.active {
+      background: var(--gradient-brand);
+      color: #fff;
+      font-weight: 600;
+    }
+    .admin-main {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .admin-topbar {
+      height: 72px;
+      background: var(--bg-surface-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 80;
+    }
+    .admin-content {
+      padding: 28px;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .admin-tab {
+      display: none;
+    }
+    .admin-tab.active {
+      display: block;
+      animation: fadeIn 0.2s ease forwards;
+    }
+    .pulse-badge {
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.08); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Direct Admin Login Screen (Displayed if not logged in) -->
+  <div id="admin-login-screen" style="display: none; min-height: 100vh; background: var(--bg-page); align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 440px; text-align: center; border-color: rgba(124, 58, 237, 0.4); box-shadow: var(--shadow-lg);">
+      <div class="logo-badge" style="margin: 0 auto 16px; width: 48px; height: 48px; font-size: 1.5rem;">A</div>
+      <h2 class="card-title" style="justify-content: center; font-size: 1.4rem; margin-bottom: 6px;">لوحة تحكم إدارة أصالة</h2>
+      <p class="form-helper" style="margin-bottom: 24px;">يرجى تسجيل الدخول بحساب المسؤول للمتابعة</p>
+
+      <form id="admin-direct-login-form" onsubmit="handleDirectAdminLogin(event)" style="text-align: right;">
+        <div class="form-group">
+          <label class="form-label">اسم المستخدم أو البريد الإلكتروني</label>
+          <input type="text" id="adm-login-input" class="form-input" required autocomplete="off" placeholder="">
+        </div>
+        <div class="form-group">
+          <label class="form-label">كلمة المرور</label>
+          <input type="password" id="adm-password-input" class="form-input" required autocomplete="off" placeholder="">
+        </div>
+        <button type="submit" id="adm-login-btn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+          دخول لوحة التحكم
+        </button>
+      </form>
+      <div style="margin-top: 20px; font-size: 0.85rem;">
+        <a href="/" style="color: var(--text-muted); text-decoration: none;">← العودة للموقع الرئيسي</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-layout" id="admin-workspace-layout" style="display: none;">
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-header">
+        <a href="/" class="logo">
+          <div class="logo-badge">A</div>
+          <span class="logo-text">أصالة — الإدارة</span>
+        </a>
+        <div style="font-size: 0.78rem; color: var(--accent); margin-top: 6px; font-weight: 600;">
+          👑 لوحة التحكم المركزية (Admin)
+        </div>
+      </div>
+
+      <ul class="admin-nav">
+        <li class="admin-nav-item">
+          <a class="nav-tab-link active" onclick="switchAdminTab('dashboard')" id="tab-link-dashboard">
+            <span style="display:flex; align-items:center; gap:10px;">📊 الإحصائيات العامة</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('deposits')" id="tab-link-deposits">
+            <span style="display:flex; align-items:center; gap:10px;">💳 طلبات الإيداع</span>
+            <span class="badge badge-pending pulse-badge" id="sidebar-pending-deposits-badge" style="display:none;">0</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('orders')" id="tab-link-orders">
+            <span style="display:flex; align-items:center; gap:10px;">📦 إدارة الطلبات</span>
+            <span class="badge badge-pending pulse-badge" id="sidebar-pending-orders-badge" style="display:none;">0</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('users')" id="tab-link-users">
+            <span style="display:flex; align-items:center; gap:10px;">👥 إدارة العملاء</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('services')" id="tab-link-services">
+            <span style="display:flex; align-items:center; gap:10px;">🌟 الخدمات والأسعار</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('payment-methods')" id="tab-link-payment-methods">
+            <span style="display:flex; align-items:center; gap:10px;">🏦 طرق الدفع والأرقام</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('settings')" id="tab-link-settings">
+            <span style="display:flex; align-items:center; gap:10px;">⚙️ إعدادات المنصة</span>
+          </a>
+        </li>
+        <li class="admin-nav-item">
+          <a class="nav-tab-link" onclick="switchAdminTab('logs')" id="tab-link-logs">
+            <span style="display:flex; align-items:center; gap:10px;">🛡️ سجل الأمان (Audit)</span>
+          </a>
+        </li>
+      </ul>
+
+      <div style="padding: 16px; border-top: 1px solid var(--border-color);">
+        <a href="/dashboard" class="btn btn-outline btn-sm" style="width: 100%; margin-bottom: 8px;">
+          <span>👤</span> بوابة العميل
+        </a>
+        <button class="btn btn-danger btn-sm" style="width: 100%;" onclick="handleAdminLogout()">
+          <span>🚪</span> تسجيل الخروج
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Admin Workspace -->
+    <div class="admin-main">
+      <!-- Admin Topbar -->
+      <header class="admin-topbar">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <h2 style="font-size: 1.25rem; font-weight: 800;" id="admin-page-title">لوحة الإدارة المركزية</h2>
+          <span class="badge badge-completed" id="polling-indicator">● متزامن لحظياً</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button class="btn btn-outline btn-sm" onclick="toggleAdminLanguage()" id="admin-lang-btn">English</button>
+          <button class="btn-icon" onclick="window.themeManager.toggle()">☀️</button>
+          <div style="font-weight: 700; color: var(--accent);" id="admin-name-badge">Admin</div>
+        </div>
+      </header>
+
+      <!-- Content Views -->
+      <main class="admin-content">
+
+        <!-- TAB 1: ADMIN DASHBOARD -->
+        <div id="admin-tab-dashboard" class="admin-tab active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="color:var(--warning); background:var(--warning-bg);">⏳</div>
+              <div>
+                <div class="stat-val" id="adm-stat-pending-deposits">0</div>
+                <div class="stat-label">إيداعات قيد المراجعة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:var(--accent); background:var(--warning-bg);">🛒</div>
+              <div>
+                <div class="stat-val" id="adm-stat-pending-orders">0</div>
+                <div class="stat-label">طلبات تنتظر التنفيذ</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:var(--info); background:var(--info-bg);">⚙️</div>
+              <div>
+                <div class="stat-val" id="adm-stat-processing-orders">0</div>
+                <div class="stat-label">طلبات قيد المعالجة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:var(--success); background:var(--success-bg);">✅</div>
+              <div>
+                <div class="stat-val" id="adm-stat-completed-orders">0</div>
+                <div class="stat-label">طلبات مكتملة</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👥</div>
+              <div>
+                <div class="stat-val" id="adm-stat-customers">0</div>
+                <div class="stat-label">إجمالي العملاء</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="color:var(--success); background:var(--success-bg);">💰</div>
+              <div>
+                <div class="stat-val" id="adm-stat-total-deposits">0.00 EGP</div>
+                <div class="stat-label">إجمالي الإيداعات المعتمدة</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: DEPOSITS REVIEW -->
+        <div id="admin-tab-deposits" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>💳</span> مراجعة واعتماد طلبات الإيداع
+              </h2>
+              <div style="display: flex; gap: 10px;">
+                <select id="adm-deposits-filter-status" class="form-select" style="width: auto;" onchange="loadAdminDeposits()">
+                  <option value="ALL">كل الحالات</option>
+                  <option value="PENDING" selected>قيد الانتظار فقط (Pending)</option>
+                  <option value="APPROVED">تمت الموافقة (Approved)</option>
+                  <option value="REJECTED">مرفوض (Rejected)</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="loadAdminDeposits()">🔄 تحديث</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>العميل</th>
+                    <th>المبلغ</th>
+                    <th>طريقة الدفع</th>
+                    <th>رقم المحول</th>
+                    <th>رقم المرجع</th>
+                    <th>إثبات التحويل</th>
+                    <th>الحالة</th>
+                    <th>التاريخ</th>
+                    <th>إجراءات الاعتماد</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-deposits-tbody">
+                  <tr><td colspan="10" style="text-align: center; padding: 25px;">جاري تحميل طلبات الإيداع...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: ORDERS MANAGEMENT & FULFILLMENT -->
+        <div id="admin-tab-orders" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>📦</span> إدارة وتنفيذ الطلبات يدوياً
+              </h2>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="adm-orders-search" class="form-input" style="width: 220px;" placeholder="بحث برقم الطلب أو الرابط..." oninput="loadAdminOrders()">
+                <select id="adm-orders-filter-status" class="form-select" style="width: auto;" onchange="loadAdminOrders()">
+                  <option value="ALL">كل الحالات</option>
+                  <option value="PENDING" selected>قيد الانتظار (Pending)</option>
+                  <option value="PROCESSING">قيد المعالجة (Processing)</option>
+                  <option value="IN_PROGRESS">قيد التنفيذ (In Progress)</option>
+                  <option value="COMPLETED">مكتمل (Completed)</option>
+                  <option value="CANCELED">ملغي (Canceled)</option>
+                  <option value="REFUNDED">مسترجع (Refunded)</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="loadAdminOrders()">🔄 تحديث</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>العميل</th>
+                    <th>الخدمة</th>
+                    <th>الرابط المستهدف</th>
+                    <th>الكمية</th>
+                    <th>التكلفة</th>
+                    <th>الحالة</th>
+                    <th>التاريخ</th>
+                    <th>تحديث الحالة اليدوية</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-orders-tbody">
+                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل الطلبات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: USERS MANAGEMENT -->
+        <div id="admin-tab-users" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>👥</span> إدارة حسابات العملاء
+              </h2>
+              <input type="text" id="adm-users-search" class="form-input" style="max-width: 260px;" placeholder="بحث باسم المستخدم أو البريد..." oninput="loadAdminUsers()">
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>اسم المستخدم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الرصيد الحالي</th>
+                    <th>إجمالي الطلبات</th>
+                    <th>إجمالي الإنفاق</th>
+                    <th>الحالة</th>
+                    <th>إجراءات الرصيد والتعطيل</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-users-tbody">
+                  <tr><td colspan="8" style="text-align: center; padding: 25px;">جاري تحميل العملاء...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: SERVICES CRUD -->
+        <div id="admin-tab-services" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🌟</span> إدارة الخدمات والأسعار
+              </h2>
+              <button class="btn btn-primary btn-sm" onclick="openCreateServiceModal()">+ إضافة خدمة جديدة</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المنصة</th>
+                    <th>اسم الخدمة (AR/EN)</th>
+                    <th>السعر / 1000</th>
+                    <th>الحد الأدنى</th>
+                    <th>الحد الأقصى</th>
+                    <th>نوع الرابط</th>
+                    <th>الحالة</th>
+                    <th>تعديل</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-services-tbody">
+                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل الخدمات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 6: PAYMENT METHODS -->
+        <div id="admin-tab-payment-methods" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🏦</span> إدارة طرق الدفع وأرقام التحويل
+              </h2>
+              <button class="btn btn-primary btn-sm" onclick="openCreatePaymentMethodModal()">+ إضافة وسيلة دفع</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>الاسم</th>
+                    <th>رقم التحويل / المحفظة</th>
+                    <th>اسم المستلم</th>
+                    <th>الحد الأدنى</th>
+                    <th>الحد الأقصى</th>
+                    <th>الحالة</th>
+                    <th>تعديل</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-pm-tbody">
+                  <tr><td colspan="8" style="text-align: center; padding: 25px;">جاري تحميل وسائل الدفع...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 7: SETTINGS -->
+        <div id="admin-tab-settings" class="admin-tab">
+          <div class="card" style="max-width: 800px;">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>⚙️</span> إعدادات المنصة العامة
+              </h2>
+              <button class="btn btn-primary btn-sm" onclick="saveAdminSettings()">💾 حفظ التغييرات</button>
+            </div>
+
+            <form id="admin-settings-form" onsubmit="event.preventDefault(); saveAdminSettings();">
+              <div class="form-group">
+                <label class="form-label">اسم المنصة (Brand Name)</label>
+                <input type="text" id="set-site-name" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">شعار المنصة (Brand Logo)</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                  <input type="url" id="set-site-logo" class="form-input" placeholder="https://example.com/logo.png أو اختر من جهازك" oninput="updateLogoPreview(this.value)">
+                  <label class="btn btn-secondary" style="margin: 0; cursor: pointer; flex-shrink: 0;">
+                    📁 اختر من جهازك
+                    <input type="file" id="logo-file-picker" accept="image/*" style="display: none;" onchange="uploadDirectLogo(this)">
+                  </label>
+                </div>
+                <div class="form-helper">يمكنك وضع رابط مباشر للصورة، أو الضغط على "📁 اختر من جهازك" لرفع أي صورة من موبايلك أو لابتوبك فوراً.</div>
+                <div id="logo-preview-container" style="margin-top: 10px; display: none;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">معاينة الشعار:</span>
+                  <div style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: inline-block; margin-top: 5px;">
+                    <img id="set-logo-preview" src="" alt="Logo Preview" style="max-height: 48px; max-width: 180px; object-fit: contain;">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">رابط أيقونة الموقع (Favicon URL)</label>
+                <input type="url" id="set-site-favicon" class="form-input" placeholder="https://example.com/favicon.ico">
+                <div class="form-helper">الأيقونة الصغيرة التي تظهر في شريط علامات تبويب المتصفح.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم واتساب الدعم الفني المباشر</label>
+                <input type="text" id="set-support-whatsapp" class="form-input" placeholder="+201030646757" required>
+                <div class="form-helper">يستخدم هذا الرقم في إشعارات الطلبات والإيداعات التلقائية للعملاء.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الإعلان العام (بالعربية)</label>
+                <textarea id="set-announcement-ar" class="form-textarea"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">الإعلان العام (بالإنجليزية)</label>
+                <textarea id="set-announcement-en" class="form-textarea"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">سعر تحويل الجنيه للدولار (للعرض فقط)</label>
+                <input type="number" step="0.0001" id="set-rate-usd" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">سماح بتسجيل مستخدمين جدد؟</label>
+                <select id="set-registration-enabled" class="form-select">
+                  <option value="true">مفعل (مفتوح للجميع)</option>
+                  <option value="false">معطل (مغلق مؤقتاً)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">وضع الصيانة للموقع (Maintenance Mode)</label>
+                <select id="set-maintenance-mode" class="form-select">
+                  <option value="false">الموقع شغال طبيعي (Active)</option>
+                  <option value="true">تحت الصيانة مؤقتاً (Under Maintenance)</option>
+                </select>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 8: AUDIT LOGS -->
+        <div id="admin-tab-logs" class="admin-tab">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>🛡️</span> سجل عمليات وإجراءات المشرفين (Audit Log)
+              </h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadAdminLogs()">🔄 تحديث</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المسؤول</th>
+                    <th>العملية</th>
+                    <th>الهدف</th>
+                    <th>رقم الهدف</th>
+                    <th>التفاصيل</th>
+                    <th>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-logs-tbody">
+                  <tr><td colspan="7" style="text-align: center; padding: 25px;">جاري تحميل سجل الأمان...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Screenshot Proof Modal -->
+  <div id="proof-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 640px; text-align: center;">
+      <button class="modal-close" onclick="closeModal('proof-modal')">&times;</button>
+      <h3 class="card-title" style="justify-content: center; margin-bottom: 16px;">إثبات التحويل للإيداع</h3>
+      <div id="proof-image-container" style="min-height: 250px; display: flex; align-items: center; justify-content: center;">
+        <img id="proof-img" src="" alt="Payment Proof" style="max-width: 100%; max-height: 500px; border-radius: var(--radius-md); object-fit: contain; box-shadow: var(--shadow-md);">
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

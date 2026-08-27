@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASALIA | أصالة — Production SMM Order & Fulfillment</title>
+  <meta name="description" content="ASALIA — The premier manual SMM fulfillment platform. Safe, real manual execution, strict financial ledger, and WhatsApp-assisted support.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="/" class="logo">
+        <div class="logo-badge">A</div>
+        <span class="logo-text" data-i18n="brand_name">أصالة</span>
+      </a>
+
+      <nav>
+        <ul class="nav-menu">
+          <li><a href="/" class="nav-link active" data-i18n="nav_home">الرئيسية</a></li>
+          <li><a href="#services" class="nav-link" data-i18n="nav_services">الخدمات</a></li>
+          <li><a href="https://wa.me/201030646757" target="_blank" rel="noopener" class="nav-link">واتساب: +201030646757</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button id="lang-toggle-btn" class="btn btn-outline btn-sm" onclick="toggleLanguage()">English</button>
+        <button id="theme-toggle-btn" class="btn-icon" onclick="window.themeManager.toggle()" aria-label="Toggle Theme">☀️</button>
+        <div id="auth-buttons-unlogged" style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('login-modal')" data-i18n="nav_login">تسجيل الدخول</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('register-modal')" data-i18n="nav_register">حساب جديد</button>
+        </div>
+        <div id="auth-buttons-logged" style="display: none; gap: 8px;">
+          <a href="/dashboard" class="btn btn-primary btn-sm" data-i18n="nav_dashboard">لوحة التحكم</a>
+          <button class="btn btn-outline btn-sm" onclick="handleLogout()" data-i18n="nav_logout">خروج</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="container">
+    <section class="hero-section">
+      <div class="hero-tagline">
+        <span>✨</span> <span data-i18n="hero_tag">تنفيذ يدوي حقيقي 100%</span>
+      </div>
+      <h1 class="hero-title" data-i18n="hero_title">عزز تواجدك على منصات التواصل مع أصالة</h1>
+      <p class="hero-subtitle" data-i18n="hero_desc">
+        المنصة الرائدة لخدمات التسويق الإلكتروني بالتنفيذ اليدوي الدقيق، أمان مالي صارم ودعم مباشر عبر واتساب.
+      </p>
+
+      <div class="hero-cta">
+        <button class="btn btn-primary btn-lg" onclick="openModal('register-modal')" data-i18n="get_started">ابدأ الآن</button>
+        <a href="#services" class="btn btn-secondary btn-lg" data-i18n="view_services">تصفح الخدمات</a>
+      </div>
+    </section>
+
+    <!-- Platform Highlights -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🛡️</div>
+        <div>
+          <div class="stat-val">100%</div>
+          <div class="stat-label">أمان وموثوقية بالكامل</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div>
+          <div class="stat-val">يدوي فوري</div>
+          <div class="stat-label">تنفيذ مباشر ودقيق بدون وسطاء</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💳</div>
+        <div>
+          <div class="stat-val">فودافون كاش / إنستاباي</div>
+          <div class="stat-label">طرق دفع محلية ميسرة</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div>
+          <div class="stat-val">+201030646757</div>
+          <div class="stat-label">دعم مباشر عبر واتساب</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Services Preview Section -->
+    <section id="services" class="card" style="margin: 40px 0;">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span>🌟</span> <span data-i18n="nav_services">الخدمات المتاحة</span>
+        </h2>
+        <span class="badge badge-approved" id="service-count-badge">خدمات نشطة</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>المنصة</th>
+              <th>اسم الخدمة</th>
+              <th>السعر لكل 1000</th>
+              <th>الحد الأدنى</th>
+              <th>الحد الأقصى</th>
+              <th>التنفيذ</th>
+            </tr>
+          </thead>
+          <tbody id="services-table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                جاري تحميل الخدمات النشطة من قاعدة البيانات...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
+      <h3 class="card-title" data-i18n="login_title">تسجيل الدخول إلى أصالة</h3>
+      <p class="form-helper" style="margin-bottom: 20px;" data-i18n="login_desc">أدخل اسم المستخدم أو البريد الإلكتروني وكلمة المرور</p>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" data-i18n="username">اسم المستخدم أو البريد</label>
+          <input type="text" id="login-username" class="form-input" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="password">كلمة المرور</label>
+          <input type="password" id="login-password" class="form-input" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;" data-i18n="login_btn">
+          دخول
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+        <span data-i18n="no_account">ليس لديك حساب؟</span>
+        <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary); font-weight: 600;" data-i18n="nav_register">إنشاء حساب</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="register-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('register-modal')">&times;</button>
+      <h3 class="card-title" data-i18n="register_title">إنشاء حساب جديد</h3>
+      <p class="form-helper" style="margin-bottom: 20px;" data-i18n="register_desc">ابدأ بطلب خدمات السوشيال ميديا بكل سهولة وأمان</p>
+
+      <form id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label" data-i18n="username">اسم المستخدم</label>
+          <input type="text" id="reg-username" class="form-input" required autocomplete="username" placeholder="">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="email">البريد الإلكتروني</label>
+          <input type="email" id="reg-email" class="form-input" required autocomplete="email" placeholder="">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="password">كلمة المرور</label>
+          <input type="password" id="reg-password" class="form-input" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="confirm_password">تأكيد كلمة المرور</label>
+          <input type="password" id="reg-confirm-password" class="form-input" required minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;" data-i18n="register_btn">
+          تسجيل حساب
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
+        <span data-i18n="already_account">لديك حساب بالفعل؟</span>
+        <a href="#" onclick="switchModal('register-modal', 'login-modal')" style="color: var(--primary); font-weight: 600;" data-i18n="nav_login">تسجيل الدخول</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    // Modal Helpers
+    function openModal(id) {
+      document.getElementById(id)?.classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id)?.classList.remove('active');
+    }
+    function switchModal(closeId, openId) {
+      closeModal(closeId);
+      openModal(openId);
+    }
+
+    // Language Toggle
+    function toggleLanguage() {
+      const nextLang = window.i18n.lang === 'ar' ? 'en' : 'ar';
+      window.i18n.setLanguage(nextLang);
+    }
+
+    // Check Auth Status on Page Load
+    async function checkAuth() {
+      try {
+        const data = await window.api.get('/auth/me');
+        if (data && data.user) {
+          document.getElementById('auth-buttons-unlogged').style.display = 'none';
+          document.getElementById('auth-buttons-logged').style.display = 'flex';
+          if (data.user.role === 'ADMIN') {
+            const adminBtn = document.createElement('a');
+            adminBtn.href = '/admin';
+            adminBtn.className = 'btn btn-secondary btn-sm';
+            adminBtn.textContent = window.i18n.t('nav_admin_panel');
+            document.getElementById('auth-buttons-logged').prepend(adminBtn);
+          }
+        }
+      } catch (err) {
+        document.getElementById('auth-buttons-unlogged').style.display = 'flex';
+        document.getElementById('auth-buttons-logged').style.display = 'none';
+      }
+    }
+
+    // Login Handler
+    async function handleLogin(e) {
+      e.preventDefault();
+      const loginBtn = document.getElementById('login-submit-btn');
+      const login = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = '...';
+
+      try {
+        const res = await window.api.post('/auth/login', { login, password });
+        if (res.token) {
+          localStorage.setItem('asalia_token', res.token);
+        }
+        showToast(window.i18n.lang === 'ar' ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!', 'success');
+        closeModal('login-modal');
+        if (res.user.role === 'ADMIN') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      } catch (err) {
+        showToast(err.message || 'Login failed', 'error');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = window.i18n.t('login_btn');
+      }
+    }
+
+    // Register Handler
+    async function handleRegister(e) {
+      e.preventDefault();
+      const regBtn = document.getElementById('reg-submit-btn');
+      const username = document.getElementById('reg-username').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+
+      if (password !== confirmPassword) {
+        showToast(window.i18n.lang === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match', 'error');
+        return;
+      }
+
+      regBtn.disabled = true;
+      regBtn.textContent = '...';
+
+      try {
+        await window.api.post('/auth/register', { username, email, password, confirmPassword });
+        showToast(window.i18n.lang === 'ar' ? 'تم إنشاء الحساب بنجاح! مرحباً بك' : 'Account created successfully!', 'success');
+        closeModal('register-modal');
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showToast(err.message || 'Registration failed', 'error');
+      } finally {
+        regBtn.disabled = false;
+        regBtn.textContent = window.i18n.t('register_btn');
+      }
+    }
+
+    // Logout Handler
+    async function handleLogout() {
+      try {
+        localStorage.removeItem('asalia_token');
+        await window.api.post('/auth/logout', {});
+        showToast(window.i18n.lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out', 'info');
+        setTimeout(() => window.location.reload(), 300);
+      } catch (err) {
+        localStorage.removeItem('asalia_token');
+        window.location.reload();
+      }
+    }
+
+    // Load Services Preview
+    async function loadServicesPreview() {
+      const tbody = document.getElementById('services-table-body');
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px;">${window.createIosSpinner('lg')}</td></tr>`;
+      try {
+        const services = await window.api.get('/services');
+        if (!services || services.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                لا توجد خدمات متاحة حالياً. سيقوم المسؤول بإضافتها قريباً.
+              </td>
+            </tr>`;
+          return;
+        }
+
+        tbody.innerHTML = services.map(s => `
+          <tr>
+            <td><strong>#${s.id}</strong></td>
+            <td><span class="badge badge-in-progress">${s.platform}</span></td>
+            <td>${window.i18n.lang === 'ar' ? s.name_ar : s.name_en}</td>
+            <td><strong>${Number(s.price_per_1000).toFixed(2)} EGP</strong></td>
+            <td>${s.min_quantity}</td>
+            <td>${s.max_quantity}</td>
+            <td><span class="badge badge-completed">${s.processing_time_info || '0-24h'}</span></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              سجل الدخول لاستعراض الخدمات وطلبها فوراً.
+            </td>
+          </tr>`;
+      }
+    }
+
+    async function loadSiteSettings() {
+      try {
+        const res = await window.api.get('/settings');
+        if (!res) return;
+        if (res.siteName) {
+          document.querySelectorAll('.logo-text').forEach(el => el.textContent = res.siteName);
+          document.title = `${res.siteName} — ${window.i18n.lang === 'ar' ? 'منصة خدمات السوشيال ميديا' : 'SMM Platform'}`;
+        }
+        if (res.logoUrl && res.logoUrl.trim()) {
+          document.querySelectorAll('.logo-badge').forEach(el => {
+            el.innerHTML = `<img src="${res.logoUrl}" alt="${res.siteName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;">`;
+            el.style.background = 'transparent';
+          });
+        }
+        if (res.faviconUrl && res.faviconUrl.trim()) {
+          let fav = document.querySelector('link[rel="icon"]');
+          if (!fav) {
+            fav = document.createElement('link');
+            fav.rel = 'icon';
+            document.head.appendChild(fav);
+          }
+          fav.href = res.faviconUrl;
+        }
+        if (res.supportWhatsApp) {
+          window.SUPPORT_WHATSAPP = res.supportWhatsApp;
+        }
+      } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSiteSettings();
+      checkAuth();
+      loadServicesPreview();
+    });
+  </script>
+
+  <!-- Apple Floating WhatsApp Support Dock -->
+  <a href="https://wa.me/201030646757" target="_blank" class="apple-fab-whatsapp" title="تواصل عبر واتساب">
+    <span>💬</span>
+    <span>واتساب الدعم</span>
+  </a>
+</body>
+</html>
