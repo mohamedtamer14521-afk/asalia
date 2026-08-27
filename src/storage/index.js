@@ -42,14 +42,23 @@ class StorageManager {
   }
 
   async _saveToLocal(key, file) {
-    const filePath = path.join(UPLOADS_DIR, path.basename(key));
-    fs.writeFileSync(filePath, file.buffer);
+    const mime = file.mimetype || 'image/png';
+    const base64Data = file.buffer.toString('base64');
+    const dataUrl = `data:${mime};base64,${base64Data}`;
+
+    try {
+      const filePath = path.join(UPLOADS_DIR, path.basename(key));
+      fs.writeFileSync(filePath, file.buffer);
+    } catch (e) {
+      // Ephemeral serverless fallback
+    }
+
     return {
       key: path.basename(key),
-      url: `/uploads/${path.basename(key)}`,
+      url: dataUrl,
       fileType: file.mimetype,
       size: file.size,
-      provider: 'local'
+      provider: 'data-url'
     };
   }
 
