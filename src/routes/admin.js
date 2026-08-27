@@ -229,6 +229,29 @@ router.delete('/deposits/:id', async (req, res) => {
   }
 });
 
+router.post('/deposits/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'NO_IDS', message: 'لم يتم تحديد أي إيداعات للحذف.' } });
+    }
+    const numericIds = ids.map(x => parseInt(x, 10)).filter(x => !isNaN(x));
+    if (numericIds.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_IDS', message: 'أرقام الإيداعات غير صحيحة.' } });
+    }
+
+    const delRes = await db.query('DELETE FROM deposits WHERE id = ANY($1::int[]) RETURNING id', [numericIds]);
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, after_state)
+       VALUES ($1, 'DEPOSIT_BULK_DELETE', 'DEPOSIT', $2, $3)`,
+      [req.user.id, String(delRes.rowCount), JSON.stringify({ count: delRes.rowCount, deleted_ids: numericIds })]
+    );
+    return res.json({ success: true, data: { message: `تم حذف ${delRes.rowCount} طلب إيداع بنجاح.`, count: delRes.rowCount } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
+  }
+});
+
 // Protected Screenshot Proof Stream
 router.get('/deposits/:id/proof', async (req, res) => {
   try {
@@ -385,6 +408,49 @@ router.patch('/orders/:id/status', async (req, res) => {
   }
 });
 
+router.delete('/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const orderRes = await db.query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } });
+    }
+    const order = orderRes.rows[0];
+    await db.query('DELETE FROM orders WHERE id = $1', [id]);
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, before_state, after_state)
+       VALUES ($1, 'ORDER_DELETE', 'ORDER', $2, $3, $4)`,
+      [req.user.id, String(id), JSON.stringify({ id: order.id, user_id: order.user_id, status: order.status }), JSON.stringify({ deleted: true })]
+    );
+    return res.json({ success: true, data: { message: 'تم حذف الطلب بنجاح.', deletedId: id } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
+  }
+});
+
+router.post('/orders/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'NO_IDS', message: 'لم يتم تحديد أي طلبات للحذف.' } });
+    }
+    const numericIds = ids.map(x => parseInt(x, 10)).filter(x => !isNaN(x));
+    if (numericIds.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_IDS', message: 'أرقام الطلبات غير صحيحة.' } });
+    }
+
+    const delRes = await db.query('DELETE FROM orders WHERE id = ANY($1::int[]) RETURNING id', [numericIds]);
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, after_state)
+       VALUES ($1, 'ORDER_BULK_DELETE', 'ORDER', $2, $3)`,
+      [req.user.id, String(delRes.rowCount), JSON.stringify({ deleted_ids: numericIds, count: delRes.rowCount })]
+    );
+    return res.json({ success: true, data: { message: `تم حذف ${delRes.rowCount} طلب بنجاح.`, count: delRes.rowCount } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
+  }
+});
+
 // -------------------------------------------------------------
 // USER MANAGEMENT
 // -------------------------------------------------------------
@@ -536,6 +602,67 @@ router.post('/users/:id/balance', async (req, res) => {
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: { code: err.code || 'ERROR', message: err.message } });
+  }
+});
+
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userRes = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Customer not found' } });
+    }
+    const user = userRes.rows[0];
+    if (user.role === 'ADMIN') {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'لا يمكن حذف حساب المسؤول (Admin).' } });
+    }
+
+    await db.query("DELETE FROM users WHERE id = $1 AND role != 'ADMIN'", [id]);
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, before_state, after_state)
+       VALUES ($1, 'USER_DELETE', 'USER', $2, $3, $4)`,
+      [req.user.id, String(id), JSON.stringify({ username: user.username, email: user.email }), JSON.stringify({ deleted: true })]
+    );
+    return res.json({ success: true, data: { message: `تم حذف حساب العميل (${user.username}) وكافة بياناته بنجاح.`, deletedId: id } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
+  }
+});
+
+router.post('/users/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'NO_IDS', message: 'لم يتم تحديد أي عملاء للحذف.' } });
+    }
+    const numericIds = ids.map(x => parseInt(x, 10)).filter(x => !isNaN(x));
+    if (numericIds.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_IDS', message: 'معرفات العملاء غير صحيحة.' } });
+    }
+
+    const delRes = await db.query("DELETE FROM users WHERE id = ANY($1::int[]) AND role != 'ADMIN' RETURNING id, username", [numericIds]);
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, after_state)
+       VALUES ($1, 'USER_BULK_DELETE', 'USER', $2, $3)`,
+      [req.user.id, String(delRes.rowCount), JSON.stringify({ count: delRes.rowCount, deleted: delRes.rows })]
+    );
+    return res.json({ success: true, data: { message: `تم حذف ${delRes.rowCount} حساب عميل مع كافة بياناتهم بنجاح لتوفير المساحة.`, count: delRes.rowCount } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
+  }
+});
+
+router.post('/users/purge-inactive', async (req, res) => {
+  try {
+    const delRes = await db.query("DELETE FROM users WHERE is_active = false AND role != 'ADMIN' RETURNING id, username");
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, after_state)
+       VALUES ($1, 'USER_PURGE_INACTIVE', 'USER', $2, $3)`,
+      [req.user.id, String(delRes.rowCount), JSON.stringify({ count: delRes.rowCount, deleted: delRes.rows })]
+    );
+    return res.json({ success: true, data: { message: `تم تنظيف وحذف ${delRes.rowCount} حساب معطل مع كافة بياناتهم بنجاح لتوفير المساحة.`, count: delRes.rowCount } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'DELETE_ERROR', message: err.message } });
   }
 });
 
@@ -812,6 +939,15 @@ router.get('/logs', async (req, res) => {
     );
 
     return res.json({ success: true, data: logsRes.rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'ERROR', message: err.message } });
+  }
+});
+
+router.delete('/logs/clear', async (req, res) => {
+  try {
+    const delRes = await db.query('DELETE FROM admin_logs RETURNING id');
+    return res.json({ success: true, data: { message: `تم مسح ${delRes.rowCount} سجل أمان بنجاح لتوفير المساحة.`, count: delRes.rowCount } });
   } catch (err) {
     return res.status(500).json({ success: false, error: { code: 'ERROR', message: err.message } });
   }

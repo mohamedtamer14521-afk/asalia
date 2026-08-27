@@ -184,17 +184,24 @@ function updateAdminDashboardUI(data) {
 async function loadAdminDeposits() {
   const tbody = document.getElementById('adm-deposits-tbody');
   const status = document.getElementById('adm-deposits-filter-status').value;
-  tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  const master = document.getElementById('adm-deposits-select-all');
+  if (master) master.checked = false;
+  updateDepositsBulkDeleteBtn();
+
+  tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const res = await window.api.get(`/admin/deposits?status=${status}`);
     if (!res.deposits || res.deposits.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد طلبات إيداع مطابقة.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد طلبات إيداع مطابقة.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = res.deposits.map(d => `
       <tr>
+        <td style="text-align: center;">
+          <input type="checkbox" class="deposit-chk" value="${d.id}" onchange="onDepositCheckboxChange()">
+        </td>
         <td><strong>#${d.id}</strong></td>
         <td>
           <strong>${d.customer_username}</strong><br>
@@ -236,7 +243,51 @@ async function loadAdminDeposits() {
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+// Deposit selection & bulk delete helpers
+function toggleSelectAllDeposits(master) {
+  const checkboxes = document.querySelectorAll('.deposit-chk');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateDepositsBulkDeleteBtn();
+}
+
+function onDepositCheckboxChange() {
+  const checkboxes = document.querySelectorAll('.deposit-chk');
+  const allChecked = Array.from(checkboxes).length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+  const master = document.getElementById('adm-deposits-select-all');
+  if (master) master.checked = allChecked;
+  updateDepositsBulkDeleteBtn();
+}
+
+function updateDepositsBulkDeleteBtn() {
+  const checked = document.querySelectorAll('.deposit-chk:checked');
+  const btn = document.getElementById('adm-deposits-bulk-delete-btn');
+  const countSpan = document.getElementById('adm-deposits-selected-count');
+  if (btn && countSpan) {
+    countSpan.textContent = checked.length;
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+async function deleteSelectedDeposits() {
+  const checked = Array.from(document.querySelectorAll('.deposit-chk:checked')).map(cb => parseInt(cb.value, 10));
+  if (checked.length === 0) {
+    showToast('يرجى تحديد طلب إيداع واحد على الأقل للحذف.', 'warning');
+    return;
+  }
+
+  if (!confirm(`هل أنت متأكد من حذف ${checked.length} طلب/طلبات إيداع تم تحديدها نهائياً؟`)) return;
+
+  try {
+    const res = await window.api.post('/admin/deposits/bulk-delete', { ids: checked });
+    showToast(res.message || `تم حذف ${checked.length} طلب إيداع بنجاح!`, 'success');
+    loadAdminDeposits();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف طلبات الإيداع المحددة', 'error');
   }
 }
 
@@ -301,17 +352,24 @@ async function loadAdminOrders() {
   const tbody = document.getElementById('adm-orders-tbody');
   const status = document.getElementById('adm-orders-filter-status').value;
   const search = document.getElementById('adm-orders-search').value;
-  tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  const master = document.getElementById('adm-orders-select-all');
+  if (master) master.checked = false;
+  updateOrdersBulkDeleteBtn();
+
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const res = await window.api.get(`/admin/orders?status=${status}&search=${encodeURIComponent(search)}`);
     if (!res.orders || res.orders.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد طلبات مطابقة.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد طلبات مطابقة.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = res.orders.map(o => `
       <tr>
+        <td style="text-align: center;">
+          <input type="checkbox" class="order-chk" value="${o.id}" onchange="onOrderCheckboxChange()">
+        </td>
         <td><strong>#${o.id}</strong></td>
         <td><strong>${o.customer_username_snap}</strong></td>
         <td>${o.service_name_snap}</td>
@@ -331,7 +389,7 @@ async function loadAdminOrders() {
         <td><span class="badge badge-${o.status.toLowerCase()}">${o.status}</span></td>
         <td>${new Date(o.created_at).toLocaleString()}</td>
         <td>
-          <div style="display: flex; gap: 6px; align-items: center;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
             <select class="form-select" style="padding: 4px 8px; font-size: 0.85rem;" onchange="updateOrderStatus(${o.id}, this.value)">
               <option value="">تغيير الحالة...</option>
               <option value="PROCESSING">قيد المعالجة</option>
@@ -340,12 +398,72 @@ async function loadAdminOrders() {
               <option value="CANCELED">إلغاء بدون استرجاع</option>
               <option value="REFUNDED">إلغاء واسترجاع المبلغ للعميل</option>
             </select>
+            <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4); padding: 4px 8px; font-size: 0.82rem;" onclick="deleteSingleOrder(${o.id})" title="حذف هذا الطلب نهائياً">
+              🗑️ حذف
+            </button>
           </div>
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+// Order selection & bulk delete helpers
+function toggleSelectAllOrders(master) {
+  const checkboxes = document.querySelectorAll('.order-chk');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateOrdersBulkDeleteBtn();
+}
+
+function onOrderCheckboxChange() {
+  const checkboxes = document.querySelectorAll('.order-chk');
+  const allChecked = Array.from(checkboxes).length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+  const master = document.getElementById('adm-orders-select-all');
+  if (master) master.checked = allChecked;
+  updateOrdersBulkDeleteBtn();
+}
+
+function updateOrdersBulkDeleteBtn() {
+  const checked = document.querySelectorAll('.order-chk:checked');
+  const btn = document.getElementById('adm-orders-bulk-delete-btn');
+  const countSpan = document.getElementById('adm-orders-selected-count');
+  if (btn && countSpan) {
+    countSpan.textContent = checked.length;
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+async function deleteSingleOrder(orderId) {
+  if (!confirm(`هل أنت متأكد من حذف الطلب #${orderId} نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+
+  try {
+    const res = await window.api.delete(`/admin/orders/${orderId}`);
+    showToast(res.message || 'تم حذف الطلب بنجاح!', 'success');
+    loadAdminOrders();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف الطلب', 'error');
+  }
+}
+
+async function deleteSelectedOrders() {
+  const checked = Array.from(document.querySelectorAll('.order-chk:checked')).map(cb => parseInt(cb.value, 10));
+  if (checked.length === 0) {
+    showToast('يرجى تحديد طلب واحد على الأقل للحذف.', 'warning');
+    return;
+  }
+
+  if (!confirm(`هل أنت متأكد من حذف ${checked.length} طلب/طلبات تم تحديدها نهائياً؟`)) return;
+
+  try {
+    const res = await window.api.post('/admin/orders/bulk-delete', { ids: checked });
+    showToast(res.message || `تم حذف ${checked.length} طلب بنجاح!`, 'success');
+    loadAdminOrders();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف الطلبات المحددة', 'error');
   }
 }
 
@@ -379,17 +497,24 @@ async function updateOrderStatus(orderId, newStatus) {
 async function loadAdminUsers() {
   const tbody = document.getElementById('adm-users-tbody');
   const search = document.getElementById('adm-users-search').value;
-  tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  const master = document.getElementById('adm-users-select-all');
+  if (master) master.checked = false;
+  updateUsersBulkDeleteBtn();
+
+  tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const res = await window.api.get(`/admin/users?search=${encodeURIComponent(search)}`);
     if (!res.users || res.users.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">لا يوجد عملاء مسجلون.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا يوجد عملاء مسجلون.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = res.users.map(u => `
       <tr>
+        <td style="text-align: center;">
+          <input type="checkbox" class="user-chk" value="${u.id}" onchange="onUserCheckboxChange()">
+        </td>
         <td><strong>#${u.id}</strong></td>
         <td><strong>${u.username}</strong></td>
         <td>${u.email}</td>
@@ -402,19 +527,92 @@ async function loadAdminUsers() {
           </span>
         </td>
         <td>
-          <div style="display: flex; gap: 6px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             <button class="btn btn-secondary btn-sm" onclick="adjustUserBalance(${u.id}, '${u.username}', ${u.balance})">
-              💰 تعديل الرصيد
+              💰 تعديل
             </button>
             <button class="btn btn-${u.is_active ? 'danger' : 'success'} btn-sm" onclick="toggleUserActive(${u.id}, ${!u.is_active})">
               ${u.is_active ? 'تعطيل' : 'تفعيل'}
+            </button>
+            <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4); padding: 4px 8px; font-size: 0.82rem;" onclick="deleteSingleUser(${u.id}, '${u.username}')" title="حذف حساب العميل وكافة بياناته لتوفير المساحة">
+              🗑️ حذف
             </button>
           </div>
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+// Customer selection & bulk delete helpers
+function toggleSelectAllUsers(master) {
+  const checkboxes = document.querySelectorAll('.user-chk');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateUsersBulkDeleteBtn();
+}
+
+function onUserCheckboxChange() {
+  const checkboxes = document.querySelectorAll('.user-chk');
+  const allChecked = Array.from(checkboxes).length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+  const master = document.getElementById('adm-users-select-all');
+  if (master) master.checked = allChecked;
+  updateUsersBulkDeleteBtn();
+}
+
+function updateUsersBulkDeleteBtn() {
+  const checked = document.querySelectorAll('.user-chk:checked');
+  const btn = document.getElementById('adm-users-bulk-delete-btn');
+  const countSpan = document.getElementById('adm-users-selected-count');
+  if (btn && countSpan) {
+    countSpan.textContent = checked.length;
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+async function deleteSingleUser(userId, username) {
+  if (!confirm(`تحذير هام: هل أنت متأكد من حذف حساب العميل (${username}) نهائياً؟\nسيتم حذف جميع طلباته، سجلاته، وعملياته لتفريغ وتوفير المساحة.`)) return;
+
+  try {
+    const res = await window.api.delete(`/admin/users/${userId}`);
+    showToast(res.message || 'تم حذف حساب العميل بنجاح!', 'success');
+    loadAdminUsers();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف العميل', 'error');
+  }
+}
+
+async function deleteSelectedUsers() {
+  const checked = Array.from(document.querySelectorAll('.user-chk:checked')).map(cb => parseInt(cb.value, 10));
+  if (checked.length === 0) {
+    showToast('يرجى تحديد عميل واحد على الأقل للحذف.', 'warning');
+    return;
+  }
+
+  if (!confirm(`تحذير هام: هل أنت متأكد من حذف ${checked.length} حساب عميل تم تحديدهم نهائياً بجميع بياناتهم لتوفير المساحة؟`)) return;
+
+  try {
+    const res = await window.api.post('/admin/users/bulk-delete', { ids: checked });
+    showToast(res.message || `تم حذف ${checked.length} عميل بنجاح!`, 'success');
+    loadAdminUsers();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل حذف العملاء المحددين', 'error');
+  }
+}
+
+async function purgeInactiveUsers() {
+  if (!confirm('هل أنت متأكد من تنظيف وحذف جميع الحسابات المعطلة نهائياً من قاعدة البيانات لتوفير المساحة؟')) return;
+
+  try {
+    const res = await window.api.post('/admin/users/purge-inactive');
+    showToast(res.message || 'تم تنظيف الحسابات بنجاح!', 'success');
+    loadAdminUsers();
+    loadAdminDashboard();
+  } catch (err) {
+    showToast(err.message || 'فشل تنظيف الحسابات', 'error');
   }
 }
 
@@ -1138,6 +1336,18 @@ async function loadAdminLogs() {
     `).join('');
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+async function clearAdminLogs() {
+  if (!confirm('تحذير: هل أنت متأكد من مسح جميع سجلات العمليات والأمان نهائياً لتوفير مساحة السيرفر وقاعدة البيانات؟')) return;
+
+  try {
+    const res = await window.api.delete('/admin/logs/clear');
+    showToast(res.message || 'تم تفريغ السجلات بنجاح!', 'success');
+    loadAdminLogs();
+  } catch (err) {
+    showToast(err.message || 'فشل مسح السجلات', 'error');
   }
 }
 

@@ -317,11 +317,14 @@
         <!-- TAB 2: DEPOSITS REVIEW -->
         <div id="admin-tab-deposits" class="admin-tab">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
                 <span>💳</span> مراجعة واعتماد طلبات الإيداع
               </h2>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button id="adm-deposits-bulk-delete-btn" class="btn btn-danger btn-sm" style="display: none;" onclick="deleteSelectedDeposits()">
+                  🗑️ حذف المحددة (<span id="adm-deposits-selected-count">0</span>)
+                </button>
                 <select id="adm-deposits-filter-status" class="form-select" style="width: auto;" onchange="loadAdminDeposits()">
                   <option value="ALL" selected>كل الحالات (المعلقة والمعتمدة)</option>
                   <option value="PENDING">قيد الانتظار فقط (Pending)</option>
@@ -336,6 +339,9 @@
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="adm-deposits-select-all" onchange="toggleSelectAllDeposits(this)" title="تحديد الكل">
+                    </th>
                     <th>#</th>
                     <th>العميل</th>
                     <th>المبلغ</th>
@@ -349,7 +355,7 @@
                   </tr>
                 </thead>
                 <tbody id="adm-deposits-tbody">
-                  <tr><td colspan="10" style="text-align: center; padding: 25px;">جاري تحميل طلبات الإيداع...</td></tr>
+                  <tr><td colspan="11" style="text-align: center; padding: 25px;">جاري تحميل طلبات الإيداع...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -359,12 +365,15 @@
         <!-- TAB 3: ORDERS MANAGEMENT & FULFILLMENT -->
         <div id="admin-tab-orders" class="admin-tab">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
                 <span>📦</span> إدارة وتنفيذ الطلبات يدوياً
               </h2>
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="adm-orders-search" class="form-input" style="width: 220px;" placeholder="بحث برقم الطلب أو الرابط..." oninput="loadAdminOrders()">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button id="adm-orders-bulk-delete-btn" class="btn btn-danger btn-sm" style="display: none;" onclick="deleteSelectedOrders()">
+                  🗑️ حذف المحددة (<span id="adm-orders-selected-count">0</span>)
+                </button>
+                <input type="text" id="adm-orders-search" class="form-input" style="width: 200px;" placeholder="بحث برقم الطلب أو الرابط..." oninput="loadAdminOrders()">
                 <select id="adm-orders-filter-status" class="form-select" style="width: auto;" onchange="loadAdminOrders()">
                   <option value="ALL">كل الحالات</option>
                   <option value="PENDING" selected>قيد الانتظار (Pending)</option>
@@ -382,6 +391,9 @@
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="adm-orders-select-all" onchange="toggleSelectAllOrders(this)" title="تحديد الكل">
+                    </th>
                     <th>#</th>
                     <th>العميل</th>
                     <th>الخدمة</th>
@@ -390,11 +402,11 @@
                     <th>التكلفة</th>
                     <th>الحالة</th>
                     <th>التاريخ</th>
-                    <th>تحديث الحالة اليدوية</th>
+                    <th>تحديث الحالة والإجراءات</th>
                   </tr>
                 </thead>
                 <tbody id="adm-orders-tbody">
-                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل الطلبات...</td></tr>
+                  <tr><td colspan="10" style="text-align: center; padding: 25px;">جاري تحميل الطلبات...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -404,17 +416,28 @@
         <!-- TAB 4: USERS MANAGEMENT -->
         <div id="admin-tab-users" class="admin-tab">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
                 <span>👥</span> إدارة حسابات العملاء
               </h2>
-              <input type="text" id="adm-users-search" class="form-input" style="max-width: 260px;" placeholder="بحث باسم المستخدم أو البريد..." oninput="loadAdminUsers()">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button id="adm-users-bulk-delete-btn" class="btn btn-danger btn-sm" style="display: none;" onclick="deleteSelectedUsers()">
+                  🗑️ حذف المحددين (<span id="adm-users-selected-count">0</span>)
+                </button>
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4);" onclick="purgeInactiveUsers()" title="حذف جميع الحسابات المعطلة وبياناتهم فوراً لتوفير المساحة">
+                  🧹 تفريغ المعطلين
+                </button>
+                <input type="text" id="adm-users-search" class="form-input" style="max-width: 240px;" placeholder="بحث باسم المستخدم أو البريد..." oninput="loadAdminUsers()">
+              </div>
             </div>
 
             <div class="table-responsive">
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="adm-users-select-all" onchange="toggleSelectAllUsers(this)" title="تحديد الكل">
+                    </th>
                     <th>#</th>
                     <th>اسم المستخدم</th>
                     <th>البريد الإلكتروني</th>
@@ -422,11 +445,11 @@
                     <th>إجمالي الطلبات</th>
                     <th>إجمالي الإنفاق</th>
                     <th>الحالة</th>
-                    <th>إجراءات الرصيد والتعطيل</th>
+                    <th>إجراءات الرصيد والحذف</th>
                   </tr>
                 </thead>
                 <tbody id="adm-users-tbody">
-                  <tr><td colspan="8" style="text-align: center; padding: 25px;">جاري تحميل العملاء...</td></tr>
+                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل العملاء...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -606,11 +629,16 @@
         <!-- TAB 8: AUDIT LOGS -->
         <div id="admin-tab-logs" class="admin-tab">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
                 <span>🛡️</span> سجل عمليات وإجراءات المشرفين (Audit Log)
               </h2>
-              <button class="btn btn-secondary btn-sm" onclick="loadAdminLogs()">🔄 تحديث</button>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4);" onclick="clearAdminLogs()" title="مسح سجل العمليات بالكامل لتوفير مساحة السيرفر">
+                  🧹 مسح السجلات القديمة
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="loadAdminLogs()">🔄 تحديث</button>
+              </div>
             </div>
             <div class="table-responsive">
               <table class="data-table">
