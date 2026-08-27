@@ -49,6 +49,7 @@ router.get('/', async (req, res) => {
         s.min_quantity,
         s.max_quantity,
         s.link_type,
+        s.image_url,
         s.refill_available,
         s.cancel_available,
         s.is_recommended,

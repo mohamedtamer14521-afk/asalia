@@ -466,17 +466,18 @@
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th>الشعار</th>
                     <th>الاسم</th>
                     <th>رقم التحويل / المحفظة</th>
                     <th>اسم المستلم</th>
                     <th>الحد الأدنى</th>
                     <th>الحد الأقصى</th>
                     <th>الحالة</th>
-                    <th>تعديل</th>
+                    <th>إجراءات</th>
                   </tr>
                 </thead>
                 <tbody id="adm-pm-tbody">
-                  <tr><td colspan="8" style="text-align: center; padding: 25px;">جاري تحميل وسائل الدفع...</td></tr>
+                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل وسائل الدفع...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -693,6 +694,75 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
           <button type="button" class="btn btn-secondary" onclick="closeCreateServiceModal()">إلغاء</button>
           <button type="submit" class="btn btn-primary">💾 حفظ الخدمة ونشرها فوراً</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add New Payment Method (Apple Style) -->
+  <div id="create-pm-modal" class="apple-modal-backdrop" style="display: none;">
+    <div class="apple-modal-card">
+      <div class="apple-modal-header">
+        <h3 style="margin: 0; font-size: 1.25rem;">🏦 إضافة وسيلة دفع جديدة</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCreatePaymentMethodModal()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+      </div>
+      <form id="create-pm-form" onsubmit="submitCreatePaymentMethod(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">اسم وسيلة الدفع بالعربية</label>
+            <input type="text" id="modal-pm-name-ar" class="form-input" placeholder="مثال: فودافون كاش" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">اسم وسيلة الدفع بالإنجليزية</label>
+            <input type="text" id="modal-pm-name-en" class="form-input" placeholder="e.g. Vodafone Cash" required>
+          </div>
+        </div>
+
+        <!-- Payment Method Logo Upload -->
+        <div class="form-group">
+          <label class="form-label">شعار / صورة وسيلة الدفع (اختياري)</label>
+          <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+            <input type="text" id="modal-pm-image" class="form-input" placeholder="رابط الشعار أو اختر من جهازك" oninput="updatePmImagePreview(this.value)">
+            <label class="btn btn-secondary" style="margin: 0; cursor: pointer; flex-shrink: 0;">
+              📁 اختر من جهازك
+              <input type="file" id="modal-pm-img-file" accept="image/*" style="display: none;" onchange="uploadDirectPmImage(this)">
+            </label>
+          </div>
+          <div id="modal-pm-img-preview" style="display: none; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 8px; width: fit-content; margin-top: 5px;">
+            <img id="modal-pm-preview-tag" src="" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">رقم التحويل / المحفظة</label>
+            <input type="text" id="modal-pm-account-number" class="form-input" placeholder="مثال: 01030646757" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">اسم صاحب المحفظة (اختياري)</label>
+            <input type="text" id="modal-pm-account-holder" class="form-input" placeholder="مثال: محمد تامر">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">الحد الأدنى للإيداع (EGP)</label>
+            <input type="number" id="modal-pm-min" class="form-input" placeholder="10" value="10" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">الحد الأقصى للإيداع (EGP)</label>
+            <input type="number" id="modal-pm-max" class="form-input" placeholder="50000" value="50000" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">تعليمات التحويل للعميل</label>
+          <textarea id="modal-pm-instructions-ar" class="form-textarea" rows="2" placeholder="مثال: حول المبلغ إلى الرقم أعلاه عبر محفظتك ثم ارفع لقطة الشاشة للتأكيد."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreatePaymentMethodModal()">إلغاء</button>
+          <button type="submit" class="btn btn-primary">💾 حفظ وسيلة الدفع</button>
         </div>
       </form>
     </div>

@@ -667,15 +667,16 @@ router.get('/payment-methods', async (req, res) => {
 
 router.post('/payment-methods', async (req, res) => {
   try {
-    const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, sort_order = 0 } = req.body;
+    const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, sort_order = 0, image_url = '' } = req.body;
     const insertRes = await db.query(
       `INSERT INTO payment_methods (
         name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar,
-        min_deposit, max_deposit, sort_order, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true) RETURNING *`,
+        min_deposit, max_deposit, sort_order, is_active, image_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10) RETURNING *`,
       [
         name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar,
-        parseFloat(min_deposit || 10), parseFloat(max_deposit || 50000), parseInt(sort_order, 10)
+        parseFloat(min_deposit || 10), parseFloat(max_deposit || 50000), parseInt(sort_order, 10),
+        image_url || null
       ]
     );
     return res.status(201).json({ success: true, data: insertRes.rows[0] });
@@ -687,7 +688,7 @@ router.post('/payment-methods', async (req, res) => {
 router.put('/payment-methods/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, is_active, sort_order } = req.body;
+    const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, is_active, sort_order, image_url } = req.body;
 
     const updateRes = await db.query(
       `UPDATE payment_methods SET
@@ -700,8 +701,9 @@ router.put('/payment-methods/:id', async (req, res) => {
         min_deposit = COALESCE($7, min_deposit),
         max_deposit = COALESCE($8, max_deposit),
         is_active = COALESCE($9, is_active),
-        sort_order = COALESCE($10, sort_order)
-       WHERE id = $11
+        sort_order = COALESCE($10, sort_order),
+        image_url = COALESCE($11, image_url)
+       WHERE id = $12
        RETURNING *`,
       [
         name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar,
@@ -709,6 +711,7 @@ router.put('/payment-methods/:id', async (req, res) => {
         max_deposit !== undefined ? parseFloat(max_deposit) : null,
         is_active !== undefined ? Boolean(is_active) : null,
         sort_order !== undefined ? parseInt(sort_order, 10) : null,
+        image_url !== undefined ? image_url : null,
         id
       ]
     );

@@ -692,18 +692,23 @@ async function submitCreateService(e) {
 // -------------------------------------------------------------
 async function loadAdminPaymentMethods() {
   const tbody = document.getElementById('adm-pm-tbody');
-  tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const methods = await window.api.get('/admin/payment-methods');
     if (!methods || methods.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد وسائل دفع مضافة.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد وسائل دفع مضافة.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = methods.map(m => `
       <tr>
         <td><strong>#${m.id}</strong></td>
+        <td>
+          <div style="width: 38px; height: 38px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color);">
+            ${m.image_url ? `<img src="${m.image_url}" style="width:100%; height:100%; object-fit:contain;">` : `<span style="font-size:1.15rem;">💳</span>`}
+          </div>
+        </td>
         <td>
           <strong>${m.name_ar}</strong><br>
           <small style="color:var(--text-muted);">${m.name_en}</small>
@@ -733,7 +738,7 @@ async function loadAdminPaymentMethods() {
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
   }
 }
 
@@ -777,25 +782,82 @@ async function deletePaymentMethod(id, name) {
   }
 }
 
-function openCreatePaymentMethodModal() {
-  const name_ar = prompt('اسم وسيلة الدفع بالعربية (مثال: فودافون كاش):', 'فودافون كاش');
-  if (!name_ar) return;
-  const name_en = prompt('اسم وسيلة الدفع بالإنجليزية (مثال: Vodafone Cash):', 'Vodafone Cash');
-  if (!name_en) return;
-  const account_number = prompt('رقم التحويل / المحفظة:', '01030646757');
-  if (!account_number) return;
-  const instructions_ar = prompt('تعليمات التحويل للعميل:', 'حول المبلغ عبر فودافون كاش ثم ارفع لقطة الشاشة لرسالة التأكيد.');
+function updatePmImagePreview(url) {
+  const container = document.getElementById('modal-pm-img-preview');
+  const img = document.getElementById('modal-pm-preview-tag');
+  if (url && url.trim()) {
+    img.src = url.trim();
+    img.onerror = () => { if (container) container.style.display = 'none'; };
+    img.onload = () => { if (container) container.style.display = 'block'; };
+  } else {
+    if (container) container.style.display = 'none';
+  }
+}
 
-  window.api.post('/admin/payment-methods', {
-    name_ar, name_en, account_number,
-    instructions_ar: instructions_ar || '',
-    min_deposit: 10, max_deposit: 50000
-  }).then(() => {
+async function uploadDirectPmImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  showToast('جاري رفع شعار وسيلة الدفع من جهازك...', 'info');
+  try {
+    const res = await window.api.request('/admin/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    document.getElementById('modal-pm-image').value = res.url;
+    updatePmImagePreview(res.url);
+    showToast('تم رفع الشعار بنجاح! 📸', 'success');
+  } catch (err) {
+    showToast(err.message || 'فشل رفع الشعار', 'error');
+  }
+}
+
+function openCreatePaymentMethodModal() {
+  const modal = document.getElementById('create-pm-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    const form = document.getElementById('create-pm-form');
+    if (form) form.reset();
+    const preview = document.getElementById('modal-pm-img-preview');
+    if (preview) preview.style.display = 'none';
+  }
+}
+
+function closeCreatePaymentMethodModal() {
+  const modal = document.getElementById('create-pm-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitCreatePaymentMethod(e) {
+  e.preventDefault();
+  const name_ar = document.getElementById('modal-pm-name-ar').value.trim();
+  const name_en = document.getElementById('modal-pm-name-en').value.trim();
+  const account_number = document.getElementById('modal-pm-account-number').value.trim();
+  const account_holder = document.getElementById('modal-pm-account-holder').value.trim();
+  const min_deposit = document.getElementById('modal-pm-min').value;
+  const max_deposit = document.getElementById('modal-pm-max').value;
+  const instructions_ar = document.getElementById('modal-pm-instructions-ar').value.trim();
+  const image_url = document.getElementById('modal-pm-image')?.value.trim() || '';
+
+  try {
+    await window.api.post('/admin/payment-methods', {
+      name_ar, name_en, account_number, account_holder,
+      min_deposit: parseFloat(min_deposit || 10),
+      max_deposit: parseFloat(max_deposit || 50000),
+      instructions_ar,
+      image_url
+    });
+
     showToast('تمت إضافة وسيلة الدفع بنجاح!', 'success');
+    closeCreatePaymentMethodModal();
     loadAdminPaymentMethods();
-  }).catch(err => {
-    showToast(err.message, 'error');
-  });
+  } catch (err) {
+    showToast(err.message || 'فشل إضافة وسيلة الدفع', 'error');
+  }
 }
 
 async function uploadDirectLogo(input) {

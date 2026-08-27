@@ -751,6 +751,18 @@ function onDepositMethodChanged() {
 
   const isAr = window.i18n.lang === 'ar';
   box.style.display = 'block';
+
+  const imgBox = document.getElementById('deposit-pm-img-box');
+  if (imgBox) {
+    imgBox.innerHTML = method.image_url
+      ? `<img src="${method.image_url}" style="width: 100%; height: 100%; object-fit: contain;">`
+      : `<span style="font-size: 1.6rem;">💳</span>`;
+  }
+  const title = document.getElementById('deposit-pm-title');
+  if (title) {
+    title.textContent = isAr ? method.name_ar : method.name_en;
+  }
+
   document.getElementById('deposit-account-number').textContent = method.account_number;
   document.getElementById('deposit-account-holder').textContent = method.account_holder 
     ? `${isAr ? 'اسم المستلم' : 'Account Holder'}: ${method.account_holder}` 

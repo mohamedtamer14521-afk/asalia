@@ -14,7 +14,7 @@ const router = express.Router();
 router.get('/methods', async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, sort_order
+      `SELECT id, name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, sort_order, image_url
        FROM payment_methods
        WHERE is_active = true
        ORDER BY sort_order ASC, id ASC`
