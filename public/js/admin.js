@@ -720,12 +720,15 @@ async function submitCreateService(e) {
 // -------------------------------------------------------------
 // PAYMENT METHODS MANAGEMENT
 // -------------------------------------------------------------
+let currentAdminPaymentMethods = [];
+
 async function loadAdminPaymentMethods() {
   const tbody = document.getElementById('adm-pm-tbody');
   tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
     const methods = await window.api.get('/admin/payment-methods');
+    currentAdminPaymentMethods = methods || [];
     if (!methods || methods.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد وسائل دفع مضافة.</td></tr>`;
       return;
@@ -754,13 +757,13 @@ async function loadAdminPaymentMethods() {
         </td>
         <td>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-outline btn-sm" onclick="openEditPaymentMethodModal(${m.id})">
+              ✏️ تعديل
+            </button>
             <label class="btn btn-outline btn-sm" style="margin: 0; cursor: pointer;" title="تغيير أو رفع لوجو وسيلة الدفع من جهازك">
               🖼️ الشعار
               <input type="file" accept="image/*" style="display: none;" onchange="uploadPaymentMethodImageDirect(${m.id}, this)">
             </label>
-            <button class="btn btn-outline btn-sm" onclick="editPaymentMethodNumber(${m.id}, '${m.account_number}')">
-              الرقم
-            </button>
             <button class="btn btn-${m.is_active ? 'secondary' : 'success'} btn-sm" onclick="togglePaymentMethodActive(${m.id}, ${!m.is_active})">
               ${m.is_active ? 'تعطيل' : 'تفعيل'}
             </button>
@@ -776,19 +779,97 @@ async function loadAdminPaymentMethods() {
   }
 }
 
-async function editPaymentMethodNumber(id, currentNum) {
-  const newNum = prompt(`تعديل رقم التحويل / الحساب لوسيلة الدفع #${id}:`, currentNum);
-  if (!newNum || !newNum.trim()) return;
+function openEditPaymentMethodModal(id) {
+  const m = currentAdminPaymentMethods.find(x => x.id === id);
+  if (!m) return;
+
+  document.getElementById('edit-pm-id').value = m.id;
+  document.getElementById('edit-pm-name-ar').value = m.name_ar || '';
+  document.getElementById('edit-pm-name-en').value = m.name_en || '';
+  document.getElementById('edit-pm-image').value = m.image_url || '';
+  document.getElementById('edit-pm-account-number').value = m.account_number || '';
+  document.getElementById('edit-pm-account-holder').value = m.account_holder || '';
+  document.getElementById('edit-pm-min').value = m.min_deposit || 10;
+  document.getElementById('edit-pm-max').value = m.max_deposit || 50000;
+  document.getElementById('edit-pm-instructions-ar').value = m.instructions_ar || '';
+
+  updateEditPmImagePreview(m.image_url || '');
+
+  const modal = document.getElementById('edit-pm-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEditPaymentMethodModal() {
+  const modal = document.getElementById('edit-pm-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateEditPmImagePreview(url) {
+  const container = document.getElementById('edit-pm-img-preview');
+  const img = document.getElementById('edit-pm-preview-tag');
+  if (url && url.trim()) {
+    img.src = url.trim();
+    img.onerror = () => { if (container) container.style.display = 'none'; };
+    img.onload = () => { if (container) container.style.display = 'block'; };
+  } else {
+    if (container) container.style.display = 'none';
+  }
+}
+
+async function uploadEditPmImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  showToast('جاري رفع الشعار الجديد من جهازك...', 'info');
+  try {
+    const res = await window.api.request('/admin/upload-image', {
+      method: 'POST',
+      body: formData
+    });
+
+    document.getElementById('edit-pm-image').value = res.url;
+    updateEditPmImagePreview(res.url);
+    showToast('تم رفع الشعار بنجاح! 📸', 'success');
+  } catch (err) {
+    showToast(err.message || 'فشل رفع الشعار', 'error');
+  }
+}
+
+async function submitEditPaymentMethod(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-pm-id').value;
+  const name_ar = document.getElementById('edit-pm-name-ar').value.trim();
+  const name_en = document.getElementById('edit-pm-name-en').value.trim();
+  const image_url = document.getElementById('edit-pm-image').value.trim();
+  const account_number = document.getElementById('edit-pm-account-number').value.trim();
+  const account_holder = document.getElementById('edit-pm-account-holder').value.trim();
+  const min_deposit = parseFloat(document.getElementById('edit-pm-min').value || 10);
+  const max_deposit = parseFloat(document.getElementById('edit-pm-max').value || 50000);
+  const instructions_ar = document.getElementById('edit-pm-instructions-ar').value.trim();
 
   try {
     await window.api.request(`/admin/payment-methods/${id}`, {
       method: 'PUT',
-      body: { account_number: newNum.trim() }
+      body: {
+        name_ar,
+        name_en,
+        image_url,
+        account_number,
+        account_holder,
+        min_deposit,
+        max_deposit,
+        instructions_ar
+      }
     });
-    showToast('تم تحديث رقم الحساب بنجاح!', 'success');
+
+    showToast('تم حفظ وتحديث وسيلة الدفع بنجاح! ✅', 'success');
+    closeEditPaymentMethodModal();
     loadAdminPaymentMethods();
   } catch (err) {
-    showToast(err.message, 'error');
+    showToast(err.message || 'فشل تحديث وسيلة الدفع', 'error');
   }
 }
 
