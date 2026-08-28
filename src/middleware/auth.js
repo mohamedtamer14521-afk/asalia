@@ -4,7 +4,7 @@ const db = require('../database/db');
 const JWT_SECRET = process.env.JWT_SECRET || 'asalia_default_jwt_secret_dev_key';
 
 /**
- * Generate a signed JWT for an authenticated user
+ * Generate a signed JWT for an authenticated user (30 days default for seamless sessions)
  */
 function generateToken(user) {
   return jwt.sign(
@@ -15,20 +15,21 @@ function generateToken(user) {
       role: user.role
     },
     JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
   );
 }
 
 /**
- * Set HTTP-only auth cookie on the response
+ * Set HTTP-only auth cookie on the response (30 days)
  */
 function setAuthCookie(res, token) {
   const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('asalia_token', token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
   });
 }
 
@@ -38,7 +39,8 @@ function setAuthCookie(res, token) {
 function clearAuthCookie(res) {
   res.clearCookie('asalia_token', {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+    sameSite: 'lax',
+    path: '/'
   });
 }
 
@@ -103,7 +105,7 @@ async function authenticate(req, res, next) {
 }
 
 /**
- * Middleware to restrict access to ADMIN users only
+ * Middleware to restrict access to ADMIN users only (Super Admin)
  */
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'ADMIN') {
@@ -111,11 +113,62 @@ function requireAdmin(req, res, next) {
       success: false,
       error: {
         code: 'FORBIDDEN',
-        message: 'Access restricted to platform administrators.'
+        message: 'Access restricted to platform Super Administrators (ADMIN).'
       }
     });
   }
   next();
+}
+
+/**
+ * Middleware to restrict access to Operations Managers or Super Admins
+ */
+function requireManager(req, res, next) {
+  if (!req.user || !['ADMIN', 'MANAGER'].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Access restricted to Operations Managers or Administrators.'
+      }
+    });
+  }
+  next();
+}
+
+/**
+ * Middleware to restrict access to Staff (ADMIN, MANAGER, SUPPORT)
+ */
+function requireStaff(req, res, next) {
+  if (!req.user || !['ADMIN', 'MANAGER', 'SUPPORT'].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Access restricted to platform staff members.'
+      }
+    });
+  }
+  next();
+}
+
+/**
+ * Flexible role authorization middleware factory
+ * @param {string[]} allowedRoles - Array of allowed roles, e.g. ['ADMIN', 'MANAGER']
+ */
+function requireRole(allowedRoles = []) {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: `Access requires one of the following roles: ${allowedRoles.join(', ')}`
+        }
+      });
+    }
+    next();
+  };
 }
 
 /**
@@ -152,5 +205,8 @@ module.exports = {
   clearAuthCookie,
   authenticate,
   requireAdmin,
+  requireManager,
+  requireStaff,
+  requireRole,
   optionalAuth
 };

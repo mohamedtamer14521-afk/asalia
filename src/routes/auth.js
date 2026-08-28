@@ -20,19 +20,20 @@ router.post('/register', authLimiter, async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: { code: 'MISSING_FIELDS', message: 'Username, email, and password are required.' }
+        error: { code: 'MISSING_FIELDS', message: 'جميع الحقول مطلوبة: اسم المستخدم، البريد الإلكتروني، وكلمة المرور.' }
       });
     }
 
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = String(username).trim().toLowerCase();
+    const cleanEmail = String(email).trim().toLowerCase();
+    const rawPassword = String(password);
 
     if (!USERNAME_REGEX.test(cleanUsername)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_USERNAME',
-          message: 'Username must be 3-30 alphanumeric characters or underscores.'
+          message: 'اسم المستخدم يجب أن يتكون من 3-30 حرفاً أو رقماً إنجليزياً وعلامة _ فقط.'
         }
       });
     }
@@ -40,21 +41,21 @@ router.post('/register', authLimiter, async (req, res) => {
     if (!EMAIL_REGEX.test(cleanEmail)) {
       return res.status(400).json({
         success: false,
-        error: { code: 'INVALID_EMAIL', message: 'Please provide a valid email address.' }
+        error: { code: 'INVALID_EMAIL', message: 'يرجى إدخال بريد إلكتروني صحيح.' }
       });
     }
 
-    if (password.length < 8) {
+    if (rawPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        error: { code: 'PASSWORD_TOO_SHORT', message: 'Password must be at least 8 characters long.' }
+        error: { code: 'PASSWORD_TOO_SHORT', message: 'كلمة المرور يجب أن لا تقل عن 6 أحرف.' }
       });
     }
 
-    if (confirmPassword && password !== confirmPassword) {
+    if (confirmPassword && rawPassword !== String(confirmPassword)) {
       return res.status(400).json({
         success: false,
-        error: { code: 'PASSWORDS_DO_NOT_MATCH', message: 'Passwords do not match.' }
+        error: { code: 'PASSWORDS_DO_NOT_MATCH', message: 'كلمتا المرور غير متطابقتين.' }
       });
     }
 
@@ -63,7 +64,7 @@ router.post('/register', authLimiter, async (req, res) => {
     if (regSetting.rows.length > 0 && regSetting.rows[0].value === 'false') {
       return res.status(403).json({
         success: false,
-        error: { code: 'REGISTRATION_CLOSED', message: 'Public registration is currently disabled.' }
+        error: { code: 'REGISTRATION_CLOSED', message: 'التسجيل العام مغلق مؤقتاً بأمر الإدارة.' }
       });
     }
 
@@ -78,21 +79,21 @@ router.post('/register', authLimiter, async (req, res) => {
       if (match.username.toLowerCase() === cleanUsername) {
         return res.status(409).json({
           success: false,
-          error: { code: 'USERNAME_TAKEN', message: 'This username is already taken.' }
+          error: { code: 'USERNAME_TAKEN', message: 'اسم المستخدم هذا مسجل بالفعل. يرجى اختيار اسم آخر أو تسجيل الدخول.' }
         });
       }
       return res.status(409).json({
         success: false,
-        error: { code: 'EMAIL_TAKEN', message: 'An account with this email already exists.' }
+        error: { code: 'EMAIL_TAKEN', message: 'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني. يرجى تسجيل الدخول.' }
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     const insertRes = await db.query(
       `INSERT INTO users (username, email, password_hash, role, balance, is_active)
        VALUES ($1, $2, $3, 'CUSTOMER', 0.0000, true)
-       RETURNING id, username, email, role, balance, created_at`,
+       RETURNING id, username, email, role, balance, is_active, created_at`,
       [cleanUsername, cleanEmail, passwordHash]
     );
 
@@ -107,9 +108,9 @@ router.post('/register', authLimiter, async (req, res) => {
       [
         newUser.id,
         'Welcome to ASALIA',
-        'مرحباً بك في أصالة',
-        'Your account has been created. Add funds to get started with social media services.',
-        'تم إنشاء حسابك بنجاح. أضف رصيداً للبدء في طلب الخدمات.'
+        'مرحباً بك في منصة أصالة',
+        'Your account has been created successfully. Add funds to get started with social media services.',
+        'تم إنشاء حسابك بنجاح. أضف رصيداً للبدء في طلب الخدمات الفورية.'
       ]
     );
 
@@ -121,7 +122,9 @@ router.post('/register', authLimiter, async (req, res) => {
           username: newUser.username,
           email: newUser.email,
           role: newUser.role,
-          balance: Number(newUser.balance)
+          balance: Number(newUser.balance),
+          is_active: newUser.is_active,
+          created_at: newUser.created_at
         },
         token
       }
@@ -130,7 +133,7 @@ router.post('/register', authLimiter, async (req, res) => {
     console.error('[AUTH REGISTER ERROR]:', err);
     return res.status(500).json({
       success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'An error occurred during registration.' }
+      error: { code: 'INTERNAL_ERROR', message: 'حدث خطأ غير متوقع أثناء إنشاء الحساب. يرجى المحاولة لاحقاً.' }
     });
   }
 });
@@ -145,22 +148,23 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!login || !password) {
       return res.status(400).json({
         success: false,
-        error: { code: 'MISSING_CREDENTIALS', message: 'Username/email and password are required.' }
+        error: { code: 'MISSING_CREDENTIALS', message: 'يرجى إدخال اسم المستخدم/البريد الإلكتروني وكلمة المرور.' }
       });
     }
 
-    const cleanLogin = login.trim().toLowerCase();
+    const cleanLogin = String(login).trim().toLowerCase();
+    const rawPassword = String(password);
 
     // Query user by username or email
     const userRes = await db.query(
-      'SELECT id, username, email, password_hash, role, balance, is_active FROM users WHERE LOWER(username) = $1 OR LOWER(email) = $1',
+      'SELECT id, username, email, password_hash, role, balance, is_active, created_at FROM users WHERE LOWER(username) = $1 OR LOWER(email) = $1',
       [cleanLogin]
     );
 
     if (userRes.rows.length === 0) {
       return res.status(401).json({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid username/email or password.' }
+        error: { code: 'INVALID_CREDENTIALS', message: 'بيانات الدخول غير صحيحة (اسم المستخدم أو كلمة المرور).' }
       });
     }
 
@@ -169,27 +173,27 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!user.is_active) {
       return res.status(403).json({
         success: false,
-        error: { code: 'ACCOUNT_SUSPENDED', message: 'Your account has been suspended by administration.' }
+        error: { code: 'ACCOUNT_SUSPENDED', message: 'تم إيقاف حسابك من قبل الإدارة. يرجى مراجعة الدعم الفني.' }
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid username/email or password.' }
+        error: { code: 'INVALID_CREDENTIALS', message: 'بيانات الدخول غير صحيحة (اسم المستخدم أو كلمة المرور).' }
       });
     }
 
     const token = generateToken(user);
     setAuthCookie(res, token);
 
-    // Audit log if admin login
-    if (user.role === 'ADMIN') {
+    // Audit log if staff/admin login
+    if (['ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role)) {
       const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
       await db.query(
         `INSERT INTO admin_logs (admin_id, action, target_type, target_id, ip_address)
-         VALUES ($1, 'LOGIN', 'AUTH', $2, $3)`,
+         VALUES ($1, 'STAFF_LOGIN', 'AUTH', $2, $3)`,
         [user.id, String(user.id), String(ip).substring(0, 45)]
       );
     }
@@ -202,7 +206,9 @@ router.post('/login', authLimiter, async (req, res) => {
           username: user.username,
           email: user.email,
           role: user.role,
-          balance: Number(user.balance)
+          balance: Number(user.balance),
+          is_active: user.is_active,
+          created_at: user.created_at
         },
         token
       }
@@ -211,7 +217,7 @@ router.post('/login', authLimiter, async (req, res) => {
     console.error('[AUTH LOGIN ERROR]:', err);
     return res.status(500).json({
       success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'An error occurred during login.' }
+      error: { code: 'INTERNAL_ERROR', message: 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة ثانية.' }
     });
   }
 });
@@ -223,15 +229,14 @@ router.post('/logout', (req, res) => {
   clearAuthCookie(res);
   return res.json({
     success: true,
-    data: { message: 'Logged out successfully.' }
+    data: { message: 'تم تسجيل الخروج بنجاح.' }
   });
 });
 
 /**
- * GET /api/me
+ * GET /api/auth/me and GET /api/me
  */
 router.get('/me', authenticate, async (req, res) => {
-  // Returns fresh customer data from PostgreSQL
   const userRes = await db.query(
     'SELECT id, username, email, role, balance, is_active, created_at FROM users WHERE id = $1',
     [req.user.id]
@@ -240,7 +245,7 @@ router.get('/me', authenticate, async (req, res) => {
   if (userRes.rows.length === 0) {
     return res.status(404).json({
       success: false,
-      error: { code: 'USER_NOT_FOUND', message: 'User not found' }
+      error: { code: 'USER_NOT_FOUND', message: 'المستخدم غير موجود' }
     });
   }
 
@@ -254,6 +259,7 @@ router.get('/me', authenticate, async (req, res) => {
         email: user.email,
         role: user.role,
         balance: Number(user.balance),
+        is_active: user.is_active,
         created_at: user.created_at
       }
     }

@@ -229,10 +229,10 @@
     <!-- Services Container List -->
     <div class="services-catalog-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
-        <h2 style="font-size: 1.25rem; margin: 0;">
-          <span>🌟</span> الخدمات المتاحة
+        <h2 style="font-size: 1.25rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🌟</span> <span>الخدمات المتاحة</span>
         </h2>
-        <span class="badge badge-approved" id="services-count-badge">جاري التحميل...</span>
+        <span class="badge badge-completed" id="services-count-badge">جاري التحميل...</span>
       </div>
 
       <div id="services-list-container">
@@ -254,11 +254,14 @@
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label">اسم المستخدم أو البريد</label>
-          <input type="text" id="login-username" class="form-input" required autocomplete="username">
+          <input type="text" id="login-username" class="form-input" required autocomplete="username" placeholder="اسم المستخدم أو البريد">
         </div>
         <div class="form-group">
           <label class="form-label">كلمة المرور</label>
-          <input type="password" id="login-password" class="form-input" required autocomplete="current-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="login-password" class="form-input" required autocomplete="current-password" placeholder="••••••••" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('login-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
           دخول
@@ -281,20 +284,26 @@
 
       <form id="register-form" onsubmit="handleRegister(event)">
         <div class="form-group">
-          <label class="form-label">اسم المستخدم</label>
-          <input type="text" id="reg-username" class="form-input" required autocomplete="username">
+          <label class="form-label">اسم المستخدم (بالإنجليزي)</label>
+          <input type="text" id="reg-username" class="form-input" required autocomplete="username" placeholder="مثال: ahmed_2026">
         </div>
         <div class="form-group">
           <label class="form-label">البريد الإلكتروني</label>
-          <input type="email" id="reg-email" class="form-input" required autocomplete="email">
+          <input type="email" id="reg-email" class="form-input" required autocomplete="email" placeholder="example@mail.com">
         </div>
         <div class="form-group">
           <label class="form-label">كلمة المرور</label>
-          <input type="password" id="reg-password" class="form-input" required autocomplete="new-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="reg-password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="6 أحرف على الأقل" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('reg-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">تأكيد كلمة المرور</label>
-          <input type="password" id="reg-confirm-password" class="form-input" required autocomplete="new-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="reg-confirm-password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('reg-confirm-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
           تسجيل حساب
@@ -321,6 +330,18 @@
     let allServices = [];
     let currentPlatform = 'all';
     let currentSearch = '';
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
 
     function getPlatformEmoji(platform) {
       const p = (platform || '').toLowerCase();
@@ -367,7 +388,10 @@
 
       let filtered = allServices;
 
-      if (currentPlatform !== 'all') {
+      const standardPlatforms = ['instagram', 'tiktok', 'youtube', 'facebook', 'telegram', 'twitter', 'whatsapp', 'snapchat'];
+      if (currentPlatform === 'other') {
+        filtered = filtered.filter(s => !standardPlatforms.includes(s.platform?.toLowerCase()));
+      } else if (currentPlatform !== 'all') {
         filtered = filtered.filter(s => s.platform?.toLowerCase() === currentPlatform);
       }
 
@@ -421,10 +445,10 @@
       }
     }
 
-    function goToOrder(serviceId) {
-      const user = window.api.getUser();
+    async function goToOrder(serviceId) {
+      const user = await window.api.getMe();
       if (user) {
-        window.location.href = `/dashboard`;
+        window.location.href = `/dashboard?service_id=${serviceId}`;
       } else {
         openModal('register-modal');
         showToast('يرجى إنشاء حساب أو تسجيل الدخول لتقديم طلبك فوراً 🚀', 'info');
@@ -449,12 +473,24 @@
       e.preventDefault();
       const u = document.getElementById('login-username').value.trim();
       const p = document.getElementById('login-password').value;
+      const btn = document.getElementById('login-submit-btn');
+      btn.disabled = true;
+      btn.textContent = '...';
+
       try {
-        await window.api.login(u, p);
+        const res = await window.api.login(u, p);
         showToast('تم تسجيل الدخول بنجاح!', 'success');
-        window.location.href = '/dashboard';
+        closeModal('login-modal');
+        if (['ADMIN', 'MANAGER', 'SUPPORT'].includes(res.user.role)) {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
       } catch (err) {
         showToast(err.message || 'بيانات الدخول غير صحيحة', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'دخول';
       }
     }
 
@@ -464,18 +500,28 @@
       const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-password').value;
       const confirmPassword = document.getElementById('reg-confirm-password').value;
+      const btn = document.getElementById('reg-submit-btn');
 
       if (password !== confirmPassword) {
         showToast('كلمتا المرور غير متطابقتين', 'error');
         return;
       }
 
+      btn.disabled = true;
+      btn.textContent = '...';
+
       try {
-        await window.api.register(username, email, password);
-        showToast('تم إنشاء الحساب بنجاح!', 'success');
-        window.location.href = '/dashboard';
+        await window.api.register(username, email, password, confirmPassword);
+        showToast('تم إنشاء الحساب بنجاح! جاري تحويلك للوحة التحكم...', 'success');
+        closeModal('register-modal');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 400);
       } catch (err) {
-        showToast(err.message || 'فشل التسجيل', 'error');
+        showToast(err.message || 'فشل التسجيل. تأكد من صحة البيانات.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'تسجيل حساب';
       }
     }
 
@@ -495,8 +541,8 @@
       document.body.style.overflow = '';
     }
 
-    function checkAuthState() {
-      const user = window.api.getUser();
+    async function checkAuthState() {
+      const user = await window.api.getMe();
       const unlogged = document.getElementById('auth-buttons-unlogged');
       const logged = document.getElementById('auth-buttons-logged');
       const mobUnlogged = document.getElementById('mobile-auth-unlogged');
@@ -507,6 +553,14 @@
         if (logged) logged.style.display = 'flex';
         if (mobUnlogged) mobUnlogged.style.display = 'none';
         if (mobLogged) mobLogged.style.display = 'flex';
+
+        if (['ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role)) {
+          const adminBtn = document.createElement('a');
+          adminBtn.href = '/admin';
+          adminBtn.className = 'btn btn-secondary btn-sm';
+          adminBtn.textContent = 'لوحة الإدارة';
+          logged.prepend(adminBtn);
+        }
       } else {
         if (unlogged) unlogged.style.display = 'flex';
         if (logged) logged.style.display = 'none';
@@ -515,8 +569,8 @@
       }
     }
 
-    function handleLogout() {
-      window.api.logout();
+    async function handleLogout() {
+      await window.api.logout();
       window.location.reload();
     }
 

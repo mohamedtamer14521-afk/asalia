@@ -492,21 +492,36 @@ async function updateOrderStatus(orderId, newStatus) {
 }
 
 // -------------------------------------------------------------
-// USERS MANAGEMENT
+// USERS MANAGEMENT & ROLES CONTROL
 // -------------------------------------------------------------
+function getRoleBadgeHtml(role) {
+  const r = (role || 'CUSTOMER').toUpperCase();
+  if (r === 'ADMIN') {
+    return `<span class="badge" style="background: rgba(175, 82, 222, 0.15); color: #bf5af2; border: 1px solid rgba(175, 82, 222, 0.35); font-weight: 700;">👑 مدير عام</span>`;
+  }
+  if (r === 'MANAGER') {
+    return `<span class="badge" style="background: rgba(10, 132, 255, 0.15); color: #0a84ff; border: 1px solid rgba(10, 132, 255, 0.35); font-weight: 700;">💼 مشرف</span>`;
+  }
+  if (r === 'SUPPORT') {
+    return `<span class="badge" style="background: rgba(48, 209, 88, 0.15); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.35); font-weight: 700;">🎧 دعم فني</span>`;
+  }
+  return `<span class="badge" style="background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid var(--border-color);">👤 عميل</span>`;
+}
+
 async function loadAdminUsers() {
   const tbody = document.getElementById('adm-users-tbody');
-  const search = document.getElementById('adm-users-search').value;
+  const search = document.getElementById('adm-users-search')?.value || '';
+  const roleFilter = document.getElementById('adm-users-filter-role')?.value || 'ALL';
   const master = document.getElementById('adm-users-select-all');
   if (master) master.checked = false;
   updateUsersBulkDeleteBtn();
 
-  tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 35px;">${window.createIosSpinner()}</td></tr>`;
 
   try {
-    const res = await window.api.get(`/admin/users?search=${encodeURIComponent(search)}`);
+    const res = await window.api.get(`/admin/users?search=${encodeURIComponent(search)}&role=${encodeURIComponent(roleFilter)}`);
     if (!res.users || res.users.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">لا يوجد عملاء مسجلون.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد حسابات مطابقة.</td></tr>`;
       return;
     }
 
@@ -516,11 +531,14 @@ async function loadAdminUsers() {
           <input type="checkbox" class="user-chk" value="${u.id}" onchange="onUserCheckboxChange()">
         </td>
         <td><strong>#${u.id}</strong></td>
-        <td><strong>${u.username}</strong></td>
+        <td>
+          <strong>${u.username}</strong>
+        </td>
         <td>${u.email}</td>
+        <td>${getRoleBadgeHtml(u.role)}</td>
         <td><strong style="color:var(--success); font-size:1.05rem;">${Number(u.balance).toFixed(2)} EGP</strong></td>
-        <td>${u.total_orders}</td>
-        <td>${Number(u.total_spent).toFixed(2)} EGP</td>
+        <td>${u.total_orders || 0}</td>
+        <td>${Number(u.total_spent || 0).toFixed(2)} EGP</td>
         <td>
           <span class="badge ${u.is_active ? 'badge-completed' : 'badge-rejected'}">
             ${u.is_active ? 'نشط' : 'معطل'}
@@ -528,10 +546,16 @@ async function loadAdminUsers() {
         </td>
         <td>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="btn btn-secondary btn-sm" onclick="adjustUserBalance(${u.id}, '${u.username}', ${u.balance})">
-              💰 تعديل
+            <button class="btn btn-secondary btn-sm" onclick="adjustUserBalance(${u.id}, '${u.username}', ${u.balance})" title="إضافة أو خصم رصيد يدوياً">
+              💰 رصيد
             </button>
-            <button class="btn btn-${u.is_active ? 'danger' : 'success'} btn-sm" onclick="toggleUserActive(${u.id}, ${!u.is_active})">
+            <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal(${u.id}, '${u.username}', '${u.email}')" title="تغيير كلمة المرور الخاصة بهذا العميل" style="color: var(--apple-blue); border-color: rgba(0, 113, 227, 0.35);">
+              🔑 الباسورد
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openChangeRoleModal(${u.id}, '${u.username}', '${u.role}')" title="تعديل صلاحيات ورتبة المستخدم">
+              🛡️ الصلاحيات
+            </button>
+            <button class="btn btn-${u.is_active ? 'danger' : 'success'} btn-sm" onclick="toggleUserActive(${u.id}, ${!u.is_active})" title="${u.is_active ? 'تعطيل الحساب' : 'تفعيل الحساب'}">
               ${u.is_active ? 'تعطيل' : 'تفعيل'}
             </button>
             <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4); padding: 4px 8px; font-size: 0.82rem;" onclick="deleteSingleUser(${u.id}, '${u.username}')" title="حذف حساب العميل وكافة بياناته لتوفير المساحة">
@@ -542,7 +566,116 @@ async function loadAdminUsers() {
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+// -------------------------------------------------------------
+// RESET PASSWORD MODAL FUNCTIONS
+// -------------------------------------------------------------
+function openResetPasswordModal(userId, username, email) {
+  document.getElementById('reset-pwd-user-id').value = userId;
+  document.getElementById('reset-pwd-username').textContent = username;
+  document.getElementById('reset-pwd-email').textContent = email;
+  document.getElementById('reset-pwd-input').value = '';
+  document.getElementById('reset-password-modal').style.display = 'flex';
+}
+
+function closeResetPasswordModal() {
+  document.getElementById('reset-password-modal').style.display = 'none';
+}
+
+function generateStrongPasswordForUser() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+  let password = '';
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const input = document.getElementById('reset-pwd-input');
+  input.value = password;
+  input.type = 'text'; // Show generated password immediately for convenience
+  showToast('تم توليد كلمة مرور قوية وجديدة! 🎲', 'info');
+}
+
+function copyGeneratedPassword() {
+  const pwd = document.getElementById('reset-pwd-input').value;
+  if (!pwd) {
+    showToast('يرجى كتابة أو توليد كلمة مرور أولاً للنسخ.', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(pwd).then(() => {
+    showToast('تم نسخ كلمة المرور إلى الحافظة بنجاح! 📋', 'success');
+  }).catch(() => {
+    showToast('تم تحديد كلمة المرور.', 'info');
+  });
+}
+
+async function submitResetUserPassword(e) {
+  e.preventDefault();
+  const userId = document.getElementById('reset-pwd-user-id').value;
+  const newPassword = document.getElementById('reset-pwd-input').value.trim();
+  const btn = document.getElementById('reset-pwd-submit-btn');
+
+  if (!newPassword || newPassword.length < 6) {
+    showToast('يجب أن لا تقل كلمة المرور عن 6 أحرف.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'جاري التحديث...';
+
+  try {
+    const res = await window.api.post(`/admin/users/${userId}/reset-password`, {
+      new_password: newPassword
+    });
+
+    showToast(res.message || 'تم تحديث كلمة مرور العميل بنجاح!', 'success');
+    closeResetPasswordModal();
+  } catch (err) {
+    showToast(err.message || 'فشل تغيير كلمة المرور.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 حفظ وتعيين كلمة المرور';
+  }
+}
+
+// -------------------------------------------------------------
+// CHANGE ROLE MODAL FUNCTIONS
+// -------------------------------------------------------------
+function openChangeRoleModal(userId, username, role) {
+  document.getElementById('role-modal-user-id').value = userId;
+  document.getElementById('role-modal-username').textContent = username;
+  document.getElementById('role-modal-current-badge').innerHTML = getRoleBadgeHtml(role);
+  document.getElementById('role-modal-select').value = (role || 'CUSTOMER').toUpperCase();
+  document.getElementById('change-role-modal').style.display = 'flex';
+}
+
+function closeChangeRoleModal() {
+  document.getElementById('change-role-modal').style.display = 'none';
+}
+
+async function submitChangeUserRole(e) {
+  e.preventDefault();
+  const userId = document.getElementById('role-modal-user-id').value;
+  const newRole = document.getElementById('role-modal-select').value;
+  const btn = document.getElementById('change-role-submit-btn');
+
+  btn.disabled = true;
+  btn.textContent = 'جاري التحديث...';
+
+  try {
+    const res = await window.api.patch(`/admin/users/${userId}/role`, {
+      role: newRole
+    });
+
+    showToast(res.message || 'تم تحديث الرتبة والصلاحيات بنجاح!', 'success');
+    closeChangeRoleModal();
+    loadAdminUsers();
+  } catch (err) {
+    showToast(err.message || 'فشل تحديث الصلاحيات.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 حفظ الرتبة';
   }
 }
 
@@ -591,15 +724,15 @@ async function deleteSelectedUsers() {
     return;
   }
 
-  if (!confirm(`تحذير هام: هل أنت متأكد من حذف ${checked.length} حساب عميل تم تحديدهم نهائياً بجميع بياناتهم لتوفير المساحة؟`)) return;
+  if (!confirm(`تحذير هام: هل أنت متأكد من حذف ${checked.length} حساب تم تحديدهم نهائياً بجميع بياناتهم لتوفير المساحة؟`)) return;
 
   try {
     const res = await window.api.post('/admin/users/bulk-delete', { ids: checked });
-    showToast(res.message || `تم حذف ${checked.length} عميل بنجاح!`, 'success');
+    showToast(res.message || `تم حذف ${checked.length} مستخدم بنجاح!`, 'success');
     loadAdminUsers();
     loadAdminDashboard();
   } catch (err) {
-    showToast(err.message || 'فشل حذف العملاء المحددين', 'error');
+    showToast(err.message || 'فشل حذف الحسابات المحددة', 'error');
   }
 }
 

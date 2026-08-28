@@ -418,16 +418,24 @@
           <div class="card">
             <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <h2 class="card-title">
-                <span>👥</span> إدارة حسابات العملاء
+                <span>👥</span> إدارة حسابات العملاء وفريق العمل
               </h2>
               <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <button id="adm-users-bulk-delete-btn" class="btn btn-danger btn-sm" style="display: none;" onclick="deleteSelectedUsers()">
                   🗑️ حذف المحددين (<span id="adm-users-selected-count">0</span>)
                 </button>
+                <select id="adm-users-filter-role" class="form-select" style="width: auto;" onchange="loadAdminUsers()">
+                  <option value="ALL">كل الحسابات والرتب</option>
+                  <option value="CUSTOMER" selected>العملاء فقط (Customers)</option>
+                  <option value="SUPPORT">فريق الدعم (Support)</option>
+                  <option value="MANAGER">مشرفين العمليات (Managers)</option>
+                  <option value="ADMIN">المدراء (Admins)</option>
+                </select>
                 <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: rgba(255, 59, 48, 0.4);" onclick="purgeInactiveUsers()" title="حذف جميع الحسابات المعطلة وبياناتهم فوراً لتوفير المساحة">
                   🧹 تفريغ المعطلين
                 </button>
-                <input type="text" id="adm-users-search" class="form-input" style="max-width: 240px;" placeholder="بحث باسم المستخدم أو البريد..." oninput="loadAdminUsers()">
+                <input type="text" id="adm-users-search" class="form-input" style="max-width: 220px;" placeholder="بحث بالاسم أو البريد..." oninput="loadAdminUsers()">
+                <button class="btn btn-secondary btn-sm" onclick="loadAdminUsers()">🔄 تحديث</button>
               </div>
             </div>
 
@@ -441,15 +449,16 @@
                     <th>#</th>
                     <th>اسم المستخدم</th>
                     <th>البريد الإلكتروني</th>
+                    <th>الرتبة / الصلاحية</th>
                     <th>الرصيد الحالي</th>
                     <th>إجمالي الطلبات</th>
                     <th>إجمالي الإنفاق</th>
                     <th>الحالة</th>
-                    <th>إجراءات الرصيد والحذف</th>
+                    <th>الإجراءات والتحكم</th>
                   </tr>
                 </thead>
                 <tbody id="adm-users-tbody">
-                  <tr><td colspan="9" style="text-align: center; padding: 25px;">جاري تحميل العملاء...</td></tr>
+                  <tr><td colspan="10" style="text-align: center; padding: 25px;">جاري تحميل العملاء...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -909,6 +918,89 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
           <button type="button" class="btn btn-secondary" onclick="closeEditPaymentMethodModal()">إلغاء</button>
           <button type="submit" class="btn btn-primary">💾 حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Reset Customer Password (Apple Style) -->
+  <div id="reset-password-modal" class="apple-modal-backdrop" style="display: none;">
+    <div class="apple-modal-card" style="max-width: 480px;">
+      <div class="apple-modal-header">
+        <h3 style="margin: 0; font-size: 1.25rem;">🔑 تغيير كلمة مرور العميل</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeResetPasswordModal()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; margin-top: 14px; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">اسم المستخدم:</span>
+          <strong id="reset-pwd-username" style="color: var(--apple-blue);">--</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">البريد الإلكتروني:</span>
+          <span id="reset-pwd-email">--</span>
+        </div>
+      </div>
+
+      <form id="reset-password-form" onsubmit="submitResetUserPassword(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 16px;">
+        <input type="hidden" id="reset-pwd-user-id">
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin: 0;">كلمة المرور الجديدة</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="generateStrongPasswordForUser()" style="padding: 2px 8px; font-size: 0.8rem;">
+              🎲 توليد باسورد قوي
+            </button>
+          </div>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="reset-pwd-input" class="form-input" required minlength="6" placeholder="أدخل كلمة المرور الجديدة أو ولدها تلقائياً" style="padding-left: 75px;">
+            <div style="position: absolute; left: 8px; display: flex; gap: 4px; align-items: center;">
+              <button type="button" onclick="togglePasswordVisibility('reset-pwd-input', this)" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء">👁️</button>
+              <button type="button" onclick="copyGeneratedPassword()" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="نسخ كلمة المرور">📋</button>
+            </div>
+          </div>
+          <small class="form-helper">سيتمكن العميل من تسجيل الدخول بكلمة المرور هذه فوراً.</small>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeResetPasswordModal()">إلغاء</button>
+          <button type="submit" id="reset-pwd-submit-btn" class="btn btn-primary">💾 حفظ وتعيين كلمة المرور</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Change User Role & Permissions (Apple Style) -->
+  <div id="change-role-modal" class="apple-modal-backdrop" style="display: none;">
+    <div class="apple-modal-card" style="max-width: 500px;">
+      <div class="apple-modal-header">
+        <h3 style="margin: 0; font-size: 1.25rem;">🛡️ تعديل الصلاحيات والرتبة</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeChangeRoleModal()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; margin-top: 14px; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>المستخدم: <strong id="role-modal-username" style="color: var(--apple-blue);">--</strong></span>
+          <span id="role-modal-current-badge" class="badge">--</span>
+        </div>
+      </div>
+
+      <form id="change-role-form" onsubmit="submitChangeUserRole(event)" style="display: flex; flex-direction: column; gap: 14px; margin-top: 16px;">
+        <input type="hidden" id="role-modal-user-id">
+
+        <div class="form-group">
+          <label class="form-label">اختر الرتبة والصلاحية الجديدة:</label>
+          <select id="role-modal-select" class="form-select" required>
+            <option value="CUSTOMER">👤 عميل (CUSTOMER) — طلب الخدمات واستخدام المنصة كعميل</option>
+            <option value="SUPPORT">🎧 فريق الدعم (SUPPORT) — متابعة تذاكر الدعم والطلبات</option>
+            <option value="MANAGER">💼 مشرف عام (MANAGER) — إدارة الطلبات، الإيداعات، الخدمات والأسعار</option>
+            <option value="ADMIN">👑 مدير عام (ADMIN) — كامل الصلاحيات والتحكم الشامل والإعدادات</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeChangeRoleModal()">إلغاء</button>
+          <button type="submit" id="change-role-submit-btn" class="btn btn-primary">💾 حفظ الرتبة</button>
         </div>
       </form>
     </div>

@@ -7,13 +7,103 @@ class ApiClient {
     this.baseUrl = '/api';
   }
 
+  getToken() {
+    try {
+      return localStorage.getItem('asalia_token') || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  setToken(token) {
+    try {
+      if (token) {
+        localStorage.setItem('asalia_token', token);
+      } else {
+        localStorage.removeItem('asalia_token');
+      }
+    } catch (e) {}
+  }
+
+  clearToken() {
+    try {
+      localStorage.removeItem('asalia_token');
+      localStorage.removeItem('asalia_user');
+    } catch (e) {}
+  }
+
+  getUser() {
+    try {
+      const stored = localStorage.getItem('asalia_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  setUser(user) {
+    try {
+      if (user) {
+        localStorage.setItem('asalia_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('asalia_user');
+      }
+    } catch (e) {}
+  }
+
+  async login(login, password) {
+    const res = await this.post('/auth/login', { login, password });
+    if (res && res.token) {
+      this.setToken(res.token);
+    }
+    if (res && res.user) {
+      this.setUser(res.user);
+    }
+    return res;
+  }
+
+  async register(username, email, password, confirmPassword) {
+    const res = await this.post('/auth/register', {
+      username,
+      email,
+      password,
+      confirmPassword: confirmPassword || password
+    });
+    if (res && res.token) {
+      this.setToken(res.token);
+    }
+    if (res && res.user) {
+      this.setUser(res.user);
+    }
+    return res;
+  }
+
+  async logout() {
+    try {
+      await this.post('/auth/logout', {});
+    } catch (e) {
+      // Proceed even if network fails
+    } finally {
+      this.clearToken();
+    }
+  }
+
+  async getMe() {
+    const data = await this.get('/auth/me');
+    if (data && data.user) {
+      this.setUser(data.user);
+      return data.user;
+    }
+    return null;
+  }
+
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const defaultHeaders = {
       'Accept': 'application/json'
     };
 
-    const token = localStorage.getItem('asalia_token');
+    const token = this.getToken();
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
@@ -51,7 +141,7 @@ class ApiClient {
       return data.data;
     } catch (err) {
       if (err.message && !err.code) {
-        throw { code: 'NETWORK_ERROR', message: 'Failed to connect to ASALIA servers.' };
+        throw { code: 'NETWORK_ERROR', message: 'فشل الاتصال بخوادم عسلية. تأكد من اتصال الإنترنت.' };
       }
       throw err;
     }
@@ -89,10 +179,6 @@ class ApiClient {
       body: JSON.stringify(body),
       ...options
     });
-  }
-
-  delete(endpoint, options = {}) {
-    return this.request(endpoint, { method: 'DELETE', ...options });
   }
 }
 

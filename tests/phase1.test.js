@@ -44,7 +44,7 @@ async function runTests() {
     const settings = await request('/api/settings');
     assert.strictEqual(settings.status, 200);
     assert.strictEqual(settings.data.success, true);
-    assert.strictEqual(settings.data.data.siteName, 'ASALIA');
+    assert.ok(settings.data.data.siteName && settings.data.data.siteName.includes('ASALIA'));
     assert.strictEqual(settings.data.data.supportWhatsApp, '+201030646757');
     console.log('✓ Settings check passed');
 

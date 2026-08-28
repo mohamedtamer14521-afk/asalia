@@ -158,11 +158,14 @@
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label" data-i18n="username">اسم المستخدم أو البريد</label>
-          <input type="text" id="login-username" class="form-input" required autocomplete="username">
+          <input type="text" id="login-username" class="form-input" required autocomplete="username" placeholder="اسم المستخدم أو البريد">
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="password">كلمة المرور</label>
-          <input type="password" id="login-password" class="form-input" required autocomplete="current-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="login-password" class="form-input" required autocomplete="current-password" placeholder="••••••••" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('login-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;" data-i18n="login_btn">
           دخول
@@ -171,7 +174,7 @@
 
       <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
         <span data-i18n="no_account">ليس لديك حساب؟</span>
-        <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary); font-weight: 600;" data-i18n="nav_register">إنشاء حساب</a>
+        <a href="#" onclick="switchModal('login-modal', 'register-modal')" style="color: var(--primary); font-weight: 600;" data-i18n="nav_register">إنشاء حساب جديد</a>
       </div>
     </div>
   </div>
@@ -185,20 +188,26 @@
 
       <form id="register-form" onsubmit="handleRegister(event)">
         <div class="form-group">
-          <label class="form-label" data-i18n="username">اسم المستخدم</label>
-          <input type="text" id="reg-username" class="form-input" required autocomplete="username" placeholder="">
+          <label class="form-label" data-i18n="username">اسم المستخدم (بالإنجليزي)</label>
+          <input type="text" id="reg-username" class="form-input" required autocomplete="username" placeholder="مثال: ahmed_2026">
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="email">البريد الإلكتروني</label>
-          <input type="email" id="reg-email" class="form-input" required autocomplete="email" placeholder="">
+          <input type="email" id="reg-email" class="form-input" required autocomplete="email" placeholder="example@mail.com">
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="password">كلمة المرور</label>
-          <input type="password" id="reg-password" class="form-input" required minlength="8" autocomplete="new-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="reg-password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="6 أحرف على الأقل" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('reg-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="confirm_password">تأكيد كلمة المرور</label>
-          <input type="password" id="reg-confirm-password" class="form-input" required minlength="8" autocomplete="new-password">
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="reg-confirm-password" class="form-input" required minlength="6" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور" style="padding-left: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('reg-confirm-password', this)" style="position: absolute; left: 10px; background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--text-muted);" title="إظهار/إخفاء كلمة المرور">👁️</button>
+          </div>
         </div>
         <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;" data-i18n="register_btn">
           تسجيل حساب
@@ -218,6 +227,19 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script>
+    // Password visibility toggle helper
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
+
     // Mobile Navigation Drawer Helpers
     function toggleMobileNav() {
       const drawer = document.getElementById('mobile-nav-drawer');
@@ -255,8 +277,8 @@
     // Check Auth Status on Page Load
     async function checkAuth() {
       try {
-        const data = await window.api.get('/auth/me');
-        if (data && data.user) {
+        const user = await window.api.getMe();
+        if (user) {
           document.getElementById('auth-buttons-unlogged').style.display = 'none';
           document.getElementById('auth-buttons-logged').style.display = 'flex';
           const mobUnlogged = document.getElementById('mobile-auth-unlogged');
@@ -264,7 +286,7 @@
           if (mobUnlogged) mobUnlogged.style.display = 'none';
           if (mobLogged) mobLogged.style.display = 'flex';
 
-          if (data.user.role === 'ADMIN') {
+          if (['ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role)) {
             const adminBtn = document.createElement('a');
             adminBtn.href = '/admin';
             adminBtn.className = 'btn btn-secondary btn-sm';
@@ -293,26 +315,23 @@
     async function handleLogin(e) {
       e.preventDefault();
       const loginBtn = document.getElementById('login-submit-btn');
-      const login = document.getElementById('login-username').value;
+      const login = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
 
       loginBtn.disabled = true;
       loginBtn.textContent = '...';
 
       try {
-        const res = await window.api.post('/auth/login', { login, password });
-        if (res.token) {
-          localStorage.setItem('asalia_token', res.token);
-        }
-        showToast(window.i18n.lang === 'ar' ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!', 'success');
+        const res = await window.api.login(login, password);
+        showToast(window.i18n.lang === 'ar' ? 'تم تسجيل الدخول بنجاح! مرحباً بك' : 'Logged in successfully!', 'success');
         closeModal('login-modal');
-        if (res.user.role === 'ADMIN') {
+        if (['ADMIN', 'MANAGER', 'SUPPORT'].includes(res.user.role)) {
           window.location.href = '/admin';
         } else {
           window.location.href = '/dashboard';
         }
       } catch (err) {
-        showToast(err.message || 'Login failed', 'error');
+        showToast(err.message || 'فشل تسجيل الدخول. تأكد من صحة البيانات.', 'error');
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = window.i18n.t('login_btn');
@@ -323,8 +342,8 @@
     async function handleRegister(e) {
       e.preventDefault();
       const regBtn = document.getElementById('reg-submit-btn');
-      const username = document.getElementById('reg-username').value;
-      const email = document.getElementById('reg-email').value;
+      const username = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-password').value;
       const confirmPassword = document.getElementById('reg-confirm-password').value;
 
@@ -337,12 +356,14 @@
       regBtn.textContent = '...';
 
       try {
-        await window.api.post('/auth/register', { username, email, password, confirmPassword });
-        showToast(window.i18n.lang === 'ar' ? 'تم إنشاء الحساب بنجاح! مرحباً بك' : 'Account created successfully!', 'success');
+        await window.api.register(username, email, password, confirmPassword);
+        showToast(window.i18n.lang === 'ar' ? 'تم إنشاء الحساب بنجاح! جاري تحويلك للوحة التحكم...' : 'Account created successfully!', 'success');
         closeModal('register-modal');
-        window.location.href = '/dashboard';
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 400);
       } catch (err) {
-        showToast(err.message || 'Registration failed', 'error');
+        showToast(err.message || 'فشل إنشاء الحساب. تأكد من صحة البيانات.', 'error');
       } finally {
         regBtn.disabled = false;
         regBtn.textContent = window.i18n.t('register_btn');
@@ -352,12 +373,10 @@
     // Logout Handler
     async function handleLogout() {
       try {
-        localStorage.removeItem('asalia_token');
-        await window.api.post('/auth/logout', {});
+        await window.api.logout();
         showToast(window.i18n.lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out', 'info');
         setTimeout(() => window.location.reload(), 300);
       } catch (err) {
-        localStorage.removeItem('asalia_token');
         window.location.reload();
       }
     }

@@ -347,10 +347,51 @@ async function runPlatformTests() {
     const publicSettings = await request('/api/settings');
     assert.strictEqual(publicSettings.data.data.siteName, 'ASALIA Production');
     assert.strictEqual(publicSettings.data.data.supportWhatsApp, '+201030646757');
-    console.log('✓ Settings updated and reflected on public API');
+    // -------------------------------------------------------------
+    // TEST 12: Admin Resets Customer Password & Customer Login
+    // -------------------------------------------------------------
+    console.log('\n[TEST 12] Testing Admin Customer Password Reset & Re-login...');
+    const newPass = 'NewCustomerPass2026!';
+    const resetPassRes = await request(`/api/admin/users/${custId}/reset-password`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: { new_password: newPass }
+    });
+    assert.strictEqual(resetPassRes.status, 200, 'Password reset should succeed');
+    console.log('✓ Admin successfully reset customer password');
+
+    // Customer logs in with new password
+    const newLoginRes = await request('/api/auth/login', {
+      method: 'POST',
+      body: { login: testUsername, password: newPass }
+    });
+    assert.strictEqual(newLoginRes.status, 200, 'Customer login with new password should succeed');
+    assert.strictEqual(newLoginRes.data.data.user.username, testUsername);
+    console.log('✓ Customer successfully logged in using new admin-assigned password');
+
+    // -------------------------------------------------------------
+    // TEST 13: Role & Permissions System
+    // -------------------------------------------------------------
+    console.log('\n[TEST 13] Testing Roles & Permissions Assignment...');
+    const roleChangeRes = await request(`/api/admin/users/${custId}/role`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: { role: 'MANAGER' }
+    });
+    assert.strictEqual(roleChangeRes.status, 200, 'Role change should succeed');
+    assert.strictEqual(roleChangeRes.data.data.role, 'MANAGER');
+    console.log('✓ Admin successfully assigned MANAGER role to user');
+
+    // Filter users by role in Admin API
+    const usersFilterRes = await request('/api/admin/users?role=MANAGER', {
+      headers: adminHeaders
+    });
+    assert.strictEqual(usersFilterRes.status, 200);
+    assert.ok(usersFilterRes.data.data.users.some(u => u.id === custId && u.role === 'MANAGER'));
+    console.log('✓ Role filtering in admin users API works accurately');
 
     console.log('\n===============================================================');
-    console.log('   ALL 11 COMPREHENSIVE PRODUCTION PLATFORM TESTS PASSED!      ');
+    console.log('   ALL 13 COMPREHENSIVE PRODUCTION PLATFORM TESTS PASSED!      ');
     console.log('===============================================================\n');
 
   } finally {

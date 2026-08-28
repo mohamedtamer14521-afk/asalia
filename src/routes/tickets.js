@@ -10,7 +10,7 @@ router.use(authenticate);
  */
 router.get('/', async (req, res) => {
   try {
-    const isAdmin = req.user.role === 'ADMIN';
+    const isStaff = ['ADMIN', 'MANAGER', 'SUPPORT'].includes(req.user.role);
     let sql = `
       SELECT t.*, u.username AS customer_username
       FROM tickets t
@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
     `;
     const params = [];
 
-    if (!isAdmin) {
+    if (!isStaff) {
       params.push(req.user.id);
       sql += ' WHERE t.user_id = $1';
     }

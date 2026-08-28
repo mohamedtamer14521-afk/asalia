@@ -1,16 +1,17 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../database/db');
 const depositService = require('../services/depositService');
 const orderService = require('../services/orderService');
 const storage = require('../storage');
 const { uploadImage } = require('../middleware/upload');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireManager, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Strict security: require authentication and role == ADMIN on every admin route
+// Strict security: require authentication and staff privileges (ADMIN, MANAGER, SUPPORT)
 router.use(authenticate);
-router.use(requireAdmin);
+router.use(requireStaff);
 
 /**
  * POST /api/admin/upload-image
@@ -158,7 +159,7 @@ router.get('/deposits', async (req, res) => {
   }
 });
 
-router.post('/deposits/:id/approve', async (req, res) => {
+router.post('/deposits/:id/approve', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { admin_notes } = req.body;
@@ -184,7 +185,7 @@ router.post('/deposits/:id/approve', async (req, res) => {
   }
 });
 
-router.post('/deposits/:id/reject', async (req, res) => {
+router.post('/deposits/:id/reject', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { admin_notes } = req.body;
@@ -210,7 +211,7 @@ router.post('/deposits/:id/reject', async (req, res) => {
   }
 });
 
-router.delete('/deposits/:id', async (req, res) => {
+router.delete('/deposits/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await depositService.deleteDeposit(parseInt(id, 10), req.user.id);
@@ -229,7 +230,7 @@ router.delete('/deposits/:id', async (req, res) => {
   }
 });
 
-router.post('/deposits/bulk-delete', async (req, res) => {
+router.post('/deposits/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -336,7 +337,7 @@ router.get('/orders', async (req, res) => {
   }
 });
 
-router.patch('/orders/:id/status', async (req, res) => {
+router.patch('/orders/:id/status', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_notes } = req.body;
@@ -408,7 +409,7 @@ router.patch('/orders/:id/status', async (req, res) => {
   }
 });
 
-router.delete('/orders/:id', async (req, res) => {
+router.delete('/orders/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const orderRes = await db.query('SELECT * FROM orders WHERE id = $1', [id]);
@@ -428,7 +429,7 @@ router.delete('/orders/:id', async (req, res) => {
   }
 });
 
-router.post('/orders/bulk-delete', async (req, res) => {
+router.post('/orders/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -452,11 +453,11 @@ router.post('/orders/bulk-delete', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// USER MANAGEMENT
+// USER MANAGEMENT & ACCESS CONTROL
 // -------------------------------------------------------------
 router.get('/users', async (req, res) => {
   try {
-    const { search, page = 1, limit = 25 } = req.query;
+    const { search, role, page = 1, limit = 50 } = req.query;
     const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
 
     let sql = `
@@ -466,9 +467,14 @@ router.get('/users', async (req, res) => {
         COALESCE(SUM(o.charge) FILTER (WHERE o.status != 'CANCELED' AND o.status != 'REFUNDED'), 0) AS total_spent
       FROM users u
       LEFT JOIN orders o ON u.id = o.user_id
-      WHERE u.role = 'CUSTOMER'
+      WHERE 1=1
     `;
     const params = [];
+
+    if (role && role !== 'ALL') {
+      params.push(role.toUpperCase());
+      sql += ` AND u.role = $${params.length}`;
+    }
 
     if (search) {
       params.push(`%${search.toLowerCase()}%`);
@@ -477,10 +483,18 @@ router.get('/users', async (req, res) => {
 
     sql += ` GROUP BY u.id`;
 
-    const countRes = await db.query(
-      `SELECT COUNT(*) AS total FROM users WHERE role = 'CUSTOMER'` + (search ? ` AND (LOWER(username) LIKE $1 OR LOWER(email) LIKE $1)` : ''),
-      search ? params : []
-    );
+    let countSql = 'SELECT COUNT(*) AS total FROM users WHERE 1=1';
+    const countParams = [];
+    if (role && role !== 'ALL') {
+      countParams.push(role.toUpperCase());
+      countSql += ` AND role = $${countParams.length}`;
+    }
+    if (search) {
+      countParams.push(`%${search.toLowerCase()}%`);
+      countSql += ` AND (LOWER(username) LIKE $${countParams.length} OR LOWER(email) LIKE $${countParams.length} OR CAST(id AS TEXT) LIKE $${countParams.length})`;
+    }
+
+    const countRes = await db.query(countSql, countParams);
     const total = parseInt(countRes.rows[0]?.total || '0', 10);
 
     sql += ` ORDER BY u.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -506,8 +520,140 @@ router.get('/users', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/users/:id/reset-password
+ * Admin resets a user's password directly from control panel
+ */
+router.post('/users/:id/reset-password', requireManager, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { new_password } = req.body;
+
+    if (!new_password || String(new_password).trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PASSWORD', message: 'يجب أن لا تقل كلمة المرور الجديدة عن 6 أحرف.' }
+      });
+    }
+
+    const userRes = await db.query('SELECT id, username, email, role FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'حساب العميل غير موجود.' }
+      });
+    }
+
+    const targetUser = userRes.rows[0];
+    const passwordHash = await bcrypt.hash(String(new_password).trim(), 10);
+
+    await db.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [passwordHash, id]
+    );
+
+    // Audit log
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, before_state, after_state)
+       VALUES ($1, 'USER_PASSWORD_RESET', 'USER', $2, $3, $4)`,
+      [
+        req.user.id,
+        String(id),
+        JSON.stringify({ username: targetUser.username }),
+        JSON.stringify({ password_reset_by: req.user.username, reset_at: new Date().toISOString() })
+      ]
+    );
+
+    // Send customer notification
+    await db.query(
+      `INSERT INTO notifications (user_id, title_en, title_ar, message_en, message_ar, type)
+       VALUES ($1, $2, $3, $4, $5, 'security')`,
+      [
+        id,
+        'Password Updated by Admin',
+        'تم تغيير كلمة المرور من قبل الإدارة',
+        'Your account password has been updated by administration. Please use your new password to sign in.',
+        'تم تحديث كلمة مرور حسابك بنجاح من قبل إدارة المنصة. يمكنك تسجيل الدخول بها الآن.'
+      ]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        message: `تم تغيير كلمة مرور حساب (${targetUser.username}) بنجاح.`,
+        username: targetUser.username
+      }
+    });
+  } catch (err) {
+    console.error('[ADMIN RESET PASSWORD ERROR]:', err);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: err.message || 'حدث خطأ أثناء تغيير كلمة المرور.' }
+    });
+  }
+});
+
+/**
+ * PATCH /api/admin/users/:id/role
+ * Admin assigns roles & permissions (ADMIN, MANAGER, SUPPORT, CUSTOMER)
+ */
+router.patch('/users/:id/role', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const allowedRoles = ['ADMIN', 'MANAGER', 'SUPPORT', 'CUSTOMER'];
+    const cleanRole = String(role || '').toUpperCase();
+
+    if (!allowedRoles.includes(cleanRole)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ROLE', message: `الرتبة يجب أن تكون واحدة من: ${allowedRoles.join(', ')}` }
+      });
+    }
+
+    const userRes = await db.query('SELECT id, username, role FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'المستخدم غير موجود.' } });
+    }
+
+    const targetUser = userRes.rows[0];
+
+    // Prevent removing own admin role
+    if (req.user.id === parseInt(id, 10) && cleanRole !== 'ADMIN') {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CANNOT_DEMOTE_SELF', message: 'لا يمكنك سحب صلاحيات المسؤول من حسابك الحالي.' }
+      });
+    }
+
+    await db.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [cleanRole, id]);
+
+    await db.query(
+      `INSERT INTO admin_logs (admin_id, action, target_type, target_id, before_state, after_state)
+       VALUES ($1, 'USER_ROLE_CHANGE', 'USER', $2, $3, $4)`,
+      [
+        req.user.id,
+        String(id),
+        JSON.stringify({ role: targetUser.role }),
+        JSON.stringify({ new_role: cleanRole, target_username: targetUser.username })
+      ]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        message: `تم تحديث صلاحية ورتبة (${targetUser.username}) إلى ${cleanRole} بنجاح.`,
+        role: cleanRole
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
 // Toggle suspend/activate
-router.patch('/users/:id/status', async (req, res) => {
+router.patch('/users/:id/status', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { is_active } = req.body;
@@ -522,7 +668,7 @@ router.patch('/users/:id/status', async (req, res) => {
 
     return res.json({
       success: true,
-      data: { message: `Customer account ${is_active ? 'activated' : 'suspended'}.` }
+      data: { message: `تم ${is_active ? 'تفعيل' : 'تعطيل'} حساب العميل بنجاح.` }
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
@@ -530,7 +676,7 @@ router.patch('/users/:id/status', async (req, res) => {
 });
 
 // Manual Credit / Manual Debit with strict audit log
-router.post('/users/:id/balance', async (req, res) => {
+router.post('/users/:id/balance', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { type, amount, reason } = req.body;
@@ -598,14 +744,14 @@ router.post('/users/:id/balance', async (req, res) => {
 
     return res.json({
       success: true,
-      data: { message: `Customer balance successfully updated to ${result.newBalance.toFixed(2)} EGP`, ...result }
+      data: { message: `تم تحديث رصيد العميل بنجاح إلى ${result.newBalance.toFixed(2)} EGP`, ...result }
     });
   } catch (err) {
     return res.status(400).json({ success: false, error: { code: err.code || 'ERROR', message: err.message } });
   }
 });
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const userRes = await db.query('SELECT * FROM users WHERE id = $1', [id]);
@@ -629,7 +775,7 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-router.post('/users/bulk-delete', async (req, res) => {
+router.post('/users/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -652,7 +798,7 @@ router.post('/users/bulk-delete', async (req, res) => {
   }
 });
 
-router.post('/users/purge-inactive', async (req, res) => {
+router.post('/users/purge-inactive', requireAdmin, async (req, res) => {
   try {
     const delRes = await db.query("DELETE FROM users WHERE is_active = false AND role != 'ADMIN' RETURNING id, username");
     await db.query(
@@ -669,7 +815,7 @@ router.post('/users/purge-inactive', async (req, res) => {
 // -------------------------------------------------------------
 // SERVICES & CATEGORIES CRUD
 // -------------------------------------------------------------
-router.post('/categories', async (req, res) => {
+router.post('/categories', requireManager, async (req, res) => {
   try {
     const { name_en, name_ar, platform, icon = 'globe', sort_order = 0 } = req.body;
     const insertRes = await db.query(
@@ -683,7 +829,7 @@ router.post('/categories', async (req, res) => {
   }
 });
 
-router.post('/services', async (req, res) => {
+router.post('/services', requireManager, async (req, res) => {
   try {
     let {
       category_id, platform, name_en, name_ar, description_en, description_ar,
@@ -729,7 +875,7 @@ router.post('/services', async (req, res) => {
   }
 });
 
-router.put('/services/:id', async (req, res) => {
+router.put('/services/:id', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -779,7 +925,7 @@ router.put('/services/:id', async (req, res) => {
   }
 });
 
-router.delete('/services/:id', async (req, res) => {
+router.delete('/services/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const delRes = await db.query('DELETE FROM services WHERE id = $1 RETURNING id, name_ar', [id]);
@@ -811,7 +957,7 @@ router.get('/payment-methods', async (req, res) => {
   }
 });
 
-router.post('/payment-methods', async (req, res) => {
+router.post('/payment-methods', requireManager, async (req, res) => {
   try {
     const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, sort_order = 0, image_url = '' } = req.body;
     const insertRes = await db.query(
@@ -831,7 +977,7 @@ router.post('/payment-methods', async (req, res) => {
   }
 });
 
-router.put('/payment-methods/:id', async (req, res) => {
+router.put('/payment-methods/:id', requireManager, async (req, res) => {
   try {
     const { id } = req.params;
     const { name_en, name_ar, account_number, account_holder, instructions_en, instructions_ar, min_deposit, max_deposit, is_active, sort_order, image_url } = req.body;
@@ -868,7 +1014,7 @@ router.put('/payment-methods/:id', async (req, res) => {
   }
 });
 
-router.delete('/payment-methods/:id', async (req, res) => {
+router.delete('/payment-methods/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const delRes = await db.query('DELETE FROM payment_methods WHERE id = $1 RETURNING id, name_ar', [id]);
@@ -900,7 +1046,7 @@ router.get('/settings', async (req, res) => {
   }
 });
 
-router.post('/settings', async (req, res) => {
+router.post('/settings', requireAdmin, async (req, res) => {
   try {
     const { settings } = req.body; // array of { key, value }
     if (!Array.isArray(settings)) {
@@ -944,7 +1090,7 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-router.delete('/logs/clear', async (req, res) => {
+router.delete('/logs/clear', requireAdmin, async (req, res) => {
   try {
     const delRes = await db.query('DELETE FROM admin_logs RETURNING id');
     return res.json({ success: true, data: { message: `تم مسح ${delRes.rowCount} سجل أمان بنجاح لتوفير المساحة.`, count: delRes.rowCount } });

@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initCustomerApp() {
   try {
-    const data = await window.api.get('/auth/me');
-    if (!data || !data.user) {
+    const user = await window.api.getMe();
+    if (!user) {
       window.location.href = '/';
       return;
     }
-    currentUser = data.user;
+    currentUser = user;
     updateUserUI();
 
     // Load branding and initial data
@@ -241,6 +241,31 @@ async function loadCategoriesAndServices() {
     populateCategoriesSelect();
     onCategoryChanged();
     renderServicesTable();
+
+    // Check if a service_id parameter was passed from services catalog
+    const urlParams = new URLSearchParams(window.location.search);
+    const serviceParam = urlParams.get('service_id');
+    if (serviceParam) {
+      const targetService = currentServices.find(s => String(s.id) === String(serviceParam));
+      if (targetService) {
+        if (targetService.platform) {
+          const pill = document.querySelector(`.platform-pill-btn[data-platform="${targetService.platform.toLowerCase()}"]`);
+          selectPlatformFilter(targetService.platform, pill);
+        }
+        if (targetService.category_id) {
+          const catSelect = document.getElementById('order-category-select');
+          if (catSelect) {
+            catSelect.value = targetService.category_id;
+            onCategoryChanged();
+          }
+        }
+        const servSelect = document.getElementById('order-service-select');
+        if (servSelect) {
+          servSelect.value = targetService.id;
+          onServiceChanged();
+        }
+      }
+    }
   } catch (err) {
     console.error('Failed to load services data:', err);
   }
@@ -898,12 +923,6 @@ function openTicketModal() {
 
 // Logout
 async function handleLogout() {
-  try {
-    localStorage.removeItem('asalia_token');
-    await window.api.post('/auth/logout', {});
-    window.location.href = '/';
-  } catch (e) {
-    localStorage.removeItem('asalia_token');
-    window.location.href = '/';
-  }
+  await window.api.logout();
+  window.location.href = '/';
 }
